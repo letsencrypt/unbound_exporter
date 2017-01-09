@@ -78,7 +78,7 @@ var (
 			"memory_modules_bytes",
 			"Memory in bytes in use by modules.",
 			prometheus.GaugeValue,
-			[]string{"mod"},
+			[]string{"module"},
 			"^mem\\.mod\\.(\\w+)$"),
 		newUnboundMetric(
 			"memory_sbrk_bytes",
