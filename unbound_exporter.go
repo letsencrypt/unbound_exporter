@@ -339,6 +339,9 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 
 func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- unboundUpDesc
+	for _, metric := range unboundMetrics {
+		ch <- metric.desc
+	}
 }
 
 func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
