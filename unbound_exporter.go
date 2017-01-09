@@ -319,6 +319,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 		tlsConfig: tls.Config{
 			Certificates: []tls.Certificate{keyPair},
 			RootCAs:      roots,
+			ServerName:   "unbound",
 		},
 	}, nil
 }
