@@ -27,8 +27,8 @@ import (
 	"strconv"
 	"strings"
 
-    "github.com/prometheus/common/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 )
 
 var (
@@ -365,7 +365,7 @@ func main() {
 	)
 	flag.Parse()
 
-    log.Info("Starting unbound_exporter")
+	log.Info("Starting unbound_exporter")
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -383,6 +383,6 @@ func main() {
 			</body>
 			</html>`))
 	})
-    log.Info("Listening on address:port => ", *listenAddress)
+	log.Info("Listening on address:port => ", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
