@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
+    "github.com/prometheus/common/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -251,7 +251,6 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 				scanner.Text())
 		}
 
-		gotMatch := false
 		for _, metric := range unboundMetrics {
 			matches := metric.pattern.FindStringSubmatch(fields[0])
 			if matches != nil {
@@ -265,14 +264,9 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 					value,
 					matches[1:]...)
 
-				gotMatch = true
 				break
 			}
 		}
-		if !gotMatch {
-			// log.Printf("Metric %q doesn't match and pattern!", fields[0])
-		}
-
 	}
 	return scanner.Err()
 }
@@ -352,7 +346,7 @@ func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1.0)
 	} else {
-		log.Printf("Failed to scrape socket: %s", err)
+		log.Error("Failed to scrape socket: %s", err)
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
@@ -371,6 +365,7 @@ func main() {
 	)
 	flag.Parse()
 
+    log.Info("Starting unbound_exporter")
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -388,5 +383,6 @@ func main() {
 			</body>
 			</html>`))
 	})
+    log.Info("Listening on", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
