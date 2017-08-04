@@ -383,6 +383,6 @@ func main() {
 			</body>
 			</html>`))
 	})
-    log.Info("Listening on", *listenAddress)
+    log.Info("Listening on address:port => ", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
