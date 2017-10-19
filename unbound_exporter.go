@@ -29,12 +29,18 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
+	"sort"
 )
 
 var (
 	unboundUpDesc = prometheus.NewDesc(
 		prometheus.BuildFQName("unbound", "", "up"),
 		"Whether scraping Unbound's metrics was successful.",
+		nil, nil)
+
+	unboundHistogram = prometheus.NewDesc(
+		prometheus.BuildFQName("unbound", "", "response_time_seconds"),
+		"Query response time in seconds.",
 		nil, nil)
 
 	unboundMetrics = []*unboundMetric{
@@ -177,12 +183,6 @@ var (
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.recursivereplies$"),
 		newUnboundMetric(
-			"response_time_seconds_bucket",
-			"Histogram buckets for query response time in seconds.",
-			prometheus.CounterValue,
-			[]string{"le"},
-			"^histogram\\.\\d+\\.\\d+\\.to\\.0*(\\d+\\.\\d+?)0*$"),
-		newUnboundMetric(
 			"rrset_bogus_total",
 			"Total number of rrsets marked bogus by the validator.",
 			prometheus.CounterValue,
@@ -242,6 +242,11 @@ func newUnboundMetric(name string, description string, valueType prometheus.Valu
 func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
+	histogramPattern := regexp.MustCompile("^histogram\\.(\\d+\\.\\d+)\\.to\\.(\\d+\\.\\d+)$")
+
+	histogramCount := uint64(0)
+	histogramSum := float64(0)
+	histogramBuckets := make(map[float64]uint64)
 
 	for scanner.Scan() {
 		fields := strings.Split(scanner.Text(), "=")
@@ -252,8 +257,7 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 		}
 
 		for _, metric := range unboundMetrics {
-			matches := metric.pattern.FindStringSubmatch(fields[0])
-			if matches != nil {
+			if matches := metric.pattern.FindStringSubmatch(fields[0]); matches != nil {
 				value, err := strconv.ParseFloat(fields[1], 64)
 				if err != nil {
 					return err
@@ -267,7 +271,35 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 				break
 			}
 		}
+
+		if matches := histogramPattern.FindStringSubmatch(fields[0]); matches != nil {
+			begin, _ := strconv.ParseFloat(matches[1], 64)
+			end, _ := strconv.ParseFloat(matches[2], 64)
+			value, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return err
+			}
+			histogramBuckets[end] = value
+			histogramCount += value
+			// There are no real data points to calculate the sum in the unbound stats
+			// Therefore the mean latency times the amount of samples is calculated and summed
+			histogramSum += (end - begin) * float64(value)
+		}
 	}
+
+	// Convert the metrics to a cumulative prometheus histogram
+	keys := []float64{}
+	for k := range histogramBuckets {
+		keys = append(keys, k)
+	}
+	sort.Float64s(keys)
+	prev := uint64(0)
+	for _, i := range keys {
+		histogramBuckets[i] += prev
+		prev = histogramBuckets[i]
+	}
+	ch <- prometheus.MustNewConstHistogram(unboundHistogram, histogramCount, histogramSum, histogramBuckets)
+
 	return scanner.Err()
 }
 
