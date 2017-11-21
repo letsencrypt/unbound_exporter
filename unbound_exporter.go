@@ -218,6 +218,18 @@ var (
 			prometheus.CounterValue,
 			nil,
 			"^unwanted\\.replies$"),
+		newUnboundMetric(
+			"recursion_time_seconds_avg",
+			"Average time it took to answer queries that needed recursive processing (does not include in-cache requests).",
+			prometheus.GaugeValue,
+			nil,
+			"^total\\.recursion\\.time\\.avg$"),
+		newUnboundMetric(
+			"recursion_time_seconds_median",
+			"The median of the time it took to answer queries that needed recursive processing.",
+			prometheus.GaugeValue,
+			nil,
+			"^total\\.recursion\\.time\\.median$"),
 	}
 )
 
