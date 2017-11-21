@@ -259,6 +259,7 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 		for _, metric := range unboundMetrics {
 			if matches := metric.pattern.FindStringSubmatch(fields[0]); matches != nil {
 				value, err := strconv.ParseFloat(fields[1], 64)
+
 				if err != nil {
 					return err
 				}
@@ -276,6 +277,7 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 			begin, _ := strconv.ParseFloat(matches[1], 64)
 			end, _ := strconv.ParseFloat(matches[2], 64)
 			value, err := strconv.ParseUint(fields[1], 10, 64)
+
 			if err != nil {
 				return err
 			}
@@ -283,7 +285,7 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 			histogramCount += value
 			// There are no real data points to calculate the sum in the unbound stats
 			// Therefore the mean latency times the amount of samples is calculated and summed
-			histogramSum += (end - begin) * float64(value)
+			histogramSum += (end + begin) / 2 * float64(value)
 		}
 	}
 
