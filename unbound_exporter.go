@@ -254,10 +254,10 @@ func newUnboundMetric(name string, description string, valueType prometheus.Valu
 func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
-	histogramPattern := regexp.MustCompile("^histogram\\.(\\d+\\.\\d+)\\.to\\.(\\d+\\.\\d+)$")
+	histogramPattern := regexp.MustCompile("^histogram\\.\\d+\\.\\d+\\.to\\.(\\d+\\.\\d+)$")
 
 	histogramCount := uint64(0)
-	histogramSum := float64(0)
+	histogramAvg := float64(0)
 	histogramBuckets := make(map[float64]uint64)
 
 	for scanner.Scan() {
@@ -286,8 +286,10 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 		}
 
 		if matches := histogramPattern.FindStringSubmatch(fields[0]); matches != nil {
-			begin, _ := strconv.ParseFloat(matches[1], 64)
-			end, _ := strconv.ParseFloat(matches[2], 64)
+			end, err := strconv.ParseFloat(matches[1], 64)
+			if err != nil {
+				return err
+			}
 			value, err := strconv.ParseUint(fields[1], 10, 64)
 
 			if err != nil {
@@ -295,13 +297,19 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 			}
 			histogramBuckets[end] = value
 			histogramCount += value
-			// There are no real data points to calculate the sum in the unbound stats
-			// Therefore the mean latency times the amount of samples is calculated and summed
-			histogramSum += (end + begin) / 2 * float64(value)
+		} else if fields[0] == "total.recursion.time.avg" {
+			value, err := strconv.ParseFloat(fields[1], 64)
+			if err != nil {
+				return err
+			}
+			histogramAvg = value
 		}
 	}
 
-	// Convert the metrics to a cumulative prometheus histogram
+	// Convert the metrics to a cumulative Prometheus histogram.
+	// Reconstruct the sum of all samples from the average value
+	// provided by Unbound. Hopefully this does not break
+	// monotonicity.
 	keys := []float64{}
 	for k := range histogramBuckets {
 		keys = append(keys, k)
@@ -312,7 +320,11 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 		histogramBuckets[i] += prev
 		prev = histogramBuckets[i]
 	}
-	ch <- prometheus.MustNewConstHistogram(unboundHistogram, histogramCount, histogramSum, histogramBuckets)
+	ch <- prometheus.MustNewConstHistogram(
+		unboundHistogram,
+		histogramCount,
+		histogramAvg*float64(histogramCount),
+		histogramBuckets)
 
 	return scanner.Err()
 }
