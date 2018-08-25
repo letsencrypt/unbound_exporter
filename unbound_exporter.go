@@ -230,18 +230,18 @@ var (
 			prometheus.GaugeValue,
 			nil,
 			"^total\\.recursion\\.time\\.median$"),
-    newUnboundMetric(
-      "msg_cache_count",
-      "The Number of Messages cached",
-      prometheus.GaugeValue,
-      nil,
-      "^msg\\.cache\\.count$"),
-    newUnboundMetric(
-      "rrset_cache_count",
-      "The Number of rrset cached",
-      prometheus.GaugeValue,
-      nil,
-      "^rrset\\.cache\\.count$"),
+		newUnboundMetric(
+			"msg_cache_count",
+			"The Number of Messages cached",
+			prometheus.GaugeValue,
+			nil,
+			"^msg\\.cache\\.count$"),
+		newUnboundMetric(
+			"rrset_cache_count",
+			"The Number of rrset cached",
+			prometheus.GaugeValue,
+			nil,
+			"^rrset\\.cache\\.count$"),
 	}
 )
 
