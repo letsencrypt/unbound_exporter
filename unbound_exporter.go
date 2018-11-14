@@ -147,6 +147,12 @@ var (
 			nil,
 			"^num\\.query\\.tcp$"),
 		newUnboundMetric(
+			"query_tls_total",
+			"Total number of queries that were made using TCP TLS towards the Unbound server.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.tls$"),
+		newUnboundMetric(
 			"query_types_total",
 			"Total number of queries with a given query type.",
 			prometheus.CounterValue,
