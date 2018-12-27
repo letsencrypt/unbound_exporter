@@ -1,2 +1,2 @@
-unbound_exporter
 .idea/
+/bazel-*

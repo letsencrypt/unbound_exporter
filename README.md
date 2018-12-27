@@ -11,10 +11,14 @@ names and labels by using a set of regular expressions.
 
 # Installation
 
-To install this code and in your go environment. You can then add the binary to your `PATH`.
+Install [Bazel](https://bazel.build/) on your system and run:
 
-    go get github.com/kumina/unbound_exporter
-    go install github.com/kumina/unbound_exporter
+    $ bazel build //:unbound_exporter
+    ...
+    Target //:unbound_exporter up-to-date:
+      bazel-bin/linux_amd64_pure_stripped/unbound_exporter
+    ...
+    $ install -m 555 bazel-bin/linux_amd64_pure_stripped/unbound_exporter /usr/bin/unbound_exporter
 
 - - - -
 
