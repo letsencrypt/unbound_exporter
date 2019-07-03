@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -356,8 +358,17 @@ func CollectFromFile(path string, ch chan<- prometheus.Metric) error {
 	return CollectFromReader(conn, ch)
 }
 
-func CollectFromSocket(host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) error {
-	conn, err := tls.Dial("tcp", host, tlsConfig)
+func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) error {
+	var (
+		conn net.Conn
+		err  error
+	)
+
+	if socketFamily == "unix" {
+		conn, err = net.Dial(socketFamily, host)
+	} else {
+		conn, err = tls.Dial(socketFamily, host, tlsConfig)
+	}
 	if err != nil {
 		return err
 	}
@@ -369,11 +380,25 @@ func CollectFromSocket(host string, tlsConfig *tls.Config, ch chan<- prometheus.
 }
 
 type UnboundExporter struct {
-	host      string
-	tlsConfig tls.Config
+	socketFamily string
+	host         string
+	tlsConfig    tls.Config
 }
 
 func NewUnboundExporter(host string, ca string, cert string, key string) (*UnboundExporter, error) {
+	u, err := url.Parse(host)
+	if err != nil {
+		return &UnboundExporter{}, err
+	}
+
+	if u.Scheme == "unix" {
+		return &UnboundExporter{
+			socketFamily: u.Scheme,
+			host:         u.Path,
+			tlsConfig:    tls.Config{},
+		}, nil
+	}
+
 	/* Server authentication. */
 	caData, err := ioutil.ReadFile(ca)
 	if err != nil {
@@ -399,7 +424,8 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 	}
 
 	return &UnboundExporter{
-		host: host,
+		socketFamily: u.Scheme,
+		host: u.Host,
 		tlsConfig: tls.Config{
 			Certificates: []tls.Certificate{keyPair},
 			RootCAs:      roots,
@@ -416,7 +442,7 @@ func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
-	err := CollectFromSocket(e.host, &e.tlsConfig, ch)
+	err := CollectFromSocket(e.socketFamily, e.host, &e.tlsConfig, ch)
 	if err == nil {
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
@@ -435,7 +461,7 @@ func main() {
 	var (
 		listenAddress = flag.String("web.listen-address", ":9167", "Address to listen on for web interface and telemetry.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-		unboundHost   = flag.String("unbound.host", "localhost:8953", "Unbound control socket hostname and port number.")
+		unboundHost   = flag.String("unbound.host", "tcp://localhost:8953", "Unix or TCP address of Unbound control socket.")
 		unboundCa     = flag.String("unbound.ca", "/etc/unbound/unbound_server.pem", "Unbound server certificate.")
 		unboundCert   = flag.String("unbound.cert", "/etc/unbound/unbound_control.pem", "Unbound client certificate.")
 		unboundKey    = flag.String("unbound.key", "/etc/unbound/unbound_control.key", "Unbound client key.")
