@@ -10,8 +10,6 @@ update-ca-certificates
 
 # Build the unbound_exporter.
 cd /unbound_exporter
-export GOPATH=/gopath
-go get -d ./...
 go build --ldflags '-extldflags "-static"'
 strip unbound_exporter
 EOF
