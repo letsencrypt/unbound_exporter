@@ -365,7 +365,7 @@ func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, 
 		err  error
 	)
 
-	if socketFamily == "unix" {
+	if socketFamily == "unix" || tlsConfig == nil {
 		conn, err = net.Dial(socketFamily, host)
 	} else {
 		conn, err = tls.Dial(socketFamily, host, tlsConfig)
@@ -383,7 +383,7 @@ func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, 
 type UnboundExporter struct {
 	socketFamily string
 	host         string
-	tlsConfig    tls.Config
+	tlsConfig    *tls.Config
 }
 
 func NewUnboundExporter(host string, ca string, cert string, key string) (*UnboundExporter, error) {
@@ -396,7 +396,13 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 		return &UnboundExporter{
 			socketFamily: u.Scheme,
 			host:         u.Path,
-			tlsConfig:    tls.Config{},
+		}, nil
+	}
+
+	if ca == "" && cert == "" {
+		return &UnboundExporter{
+			socketFamily: u.Scheme,
+			host:         u.Host,
 		}, nil
 	}
 
@@ -426,8 +432,8 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 
 	return &UnboundExporter{
 		socketFamily: u.Scheme,
-		host: u.Host,
-		tlsConfig: tls.Config{
+		host:         u.Host,
+		tlsConfig: &tls.Config{
 			Certificates: []tls.Certificate{keyPair},
 			RootCAs:      roots,
 			ServerName:   "unbound",
@@ -443,7 +449,7 @@ func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
-	err := CollectFromSocket(e.socketFamily, e.host, &e.tlsConfig, ch)
+	err := CollectFromSocket(e.socketFamily, e.host, e.tlsConfig, ch)
 	if err == nil {
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
