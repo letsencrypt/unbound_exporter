@@ -23,3 +23,8 @@ To install this code and in your go environment. You can then add the binary to 
 To show all CLI flags available
 
     unbound_exporter -h
+
+For extended statistics, you may want to add the following to your unbound.conf
+
+	# statistics
+	extended-statistics: yes
