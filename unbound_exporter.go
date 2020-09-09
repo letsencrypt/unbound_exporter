@@ -456,7 +456,7 @@ func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1.0)
 	} else {
-		log.Error("Failed to scrape socket: %s", err)
+		log.Errorf("Failed to scrape socket: %s", err)
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
