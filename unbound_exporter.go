@@ -276,7 +276,7 @@ func newUnboundMetric(name string, description string, valueType prometheus.Valu
 func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
-	histogramPattern := regexp.MustCompile("^histogram\\.\\d+\\.\\d+\\.to\\.(\\d+\\.\\d+)$")
+	histogramPattern := regexp.MustCompile(`^histogram\.\d+\.\d+\.to\.(\d+\.\d+)$`)
 
 	histogramCount := uint64(0)
 	histogramAvg := float64(0)
