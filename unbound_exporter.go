@@ -26,6 +26,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+        "github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
@@ -448,7 +449,7 @@ func main() {
 	}
 	prometheus.MustRegister(exporter)
 
-	http.Handle(*metricsPath, prometheus.Handler())
+	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`
 			<html>
