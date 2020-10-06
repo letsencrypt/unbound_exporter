@@ -28,6 +28,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+        "github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"sort"
 
