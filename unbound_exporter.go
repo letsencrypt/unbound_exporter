@@ -356,6 +356,7 @@ func CollectFromFile(path string, ch chan<- prometheus.Metric) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	return CollectFromReader(conn, ch)
 }
 
