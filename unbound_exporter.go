@@ -373,6 +373,7 @@ func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, 
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	_, err = conn.Write([]byte("UBCT1 stats_noreset\n"))
 	if err != nil {
 		return err
