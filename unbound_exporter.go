@@ -109,6 +109,12 @@ var (
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.queries$"),
 		newUnboundMetric(
+			"expired_total",
+			"Total number of expired entries served.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.expired$"),
+		newUnboundMetric(
 			"query_classes_total",
 			"Total number of queries with a given query class.",
 			prometheus.CounterValue,
