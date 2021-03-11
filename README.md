@@ -16,6 +16,7 @@ To install this code and in your go environment. You can then add the binary to 
     go get github.com/kumina/unbound_exporter
     go install github.com/kumina/unbound_exporter
 
+To install unbound with grafana: https://github.com/jianershi/unbound-config
 - - - -
 
 # Usage
