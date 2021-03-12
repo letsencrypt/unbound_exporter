@@ -1,5 +1,11 @@
 # Prometheus Unbound exporter
 
+**Please note:** This repository is currently unmaintained. Due to insufficient time and not using the exporter anymore
+we decided to archive this project.
+
+---
+
+
 This repository provides code for a simple Prometheus metrics exporter
 for [the Unbound DNS resolver](https://unbound.net/). This exporter
 connects to Unbounds TLS control socket and sends the `stats_noreset`
