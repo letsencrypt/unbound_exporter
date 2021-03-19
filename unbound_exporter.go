@@ -273,14 +273,21 @@ func newUnboundMetric(name string, description string, valueType prometheus.Valu
 	}
 }
 
-func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
+type threadHelper struct {
+	match []string
+	value float64
+}
+
+func CollectFromReader(file io.Reader, threads bool, ch chan<- prometheus.Metric) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
-	histogramPattern := regexp.MustCompile("^histogram\\.\\d+\\.\\d+\\.to\\.(\\d+\\.\\d+)$")
+	histogramPattern := regexp.MustCompile(`^histogram\.\d+\.\d+\.to\.(\d+\.\d+)$`)
 
 	histogramCount := uint64(0)
 	histogramAvg := float64(0)
 	histogramBuckets := make(map[float64]uint64)
+
+	threadSummary := make(map[unboundMetric]threadHelper)
 
 	for scanner.Scan() {
 		fields := strings.Split(scanner.Text(), "=")
@@ -296,6 +303,15 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 
 				if err != nil {
 					return err
+				}
+
+				if !threads && strings.HasPrefix(matches[0], "thread") {
+					update := threadSummary[*metric]
+					matches[1] = "sum"
+					update.match = matches[1:]
+					update.value += value
+					threadSummary[*metric] = update
+					break
 				}
 				ch <- prometheus.MustNewConstMetric(
 					metric.desc,
@@ -328,6 +344,16 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 		}
 	}
 
+	if !threads {
+		for metric, helper := range threadSummary {
+			ch <- prometheus.MustNewConstMetric(
+				metric.desc,
+				metric.valueType,
+				helper.value,
+				helper.match...)
+		}
+	}
+
 	// Convert the metrics to a cumulative Prometheus histogram.
 	// Reconstruct the sum of all samples from the average value
 	// provided by Unbound. Hopefully this does not break
@@ -356,10 +382,11 @@ func CollectFromFile(path string, ch chan<- prometheus.Metric) error {
 	if err != nil {
 		return err
 	}
-	return CollectFromReader(conn, ch)
+	return CollectFromReader(conn, true, ch)
 }
 
-func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) error {
+func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config,
+	threads bool, ch chan<- prometheus.Metric) error {
 	var (
 		conn net.Conn
 		err  error
@@ -377,16 +404,17 @@ func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, 
 	if err != nil {
 		return err
 	}
-	return CollectFromReader(conn, ch)
+	return CollectFromReader(conn, threads, ch)
 }
 
 type UnboundExporter struct {
 	socketFamily string
 	host         string
 	tlsConfig    *tls.Config
+	threads      bool
 }
 
-func NewUnboundExporter(host string, ca string, cert string, key string) (*UnboundExporter, error) {
+func NewUnboundExporter(host string, ca string, cert string, key string, threads bool) (*UnboundExporter, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return &UnboundExporter{}, err
@@ -438,6 +466,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 			RootCAs:      roots,
 			ServerName:   "unbound",
 		},
+		threads: threads,
 	}, nil
 }
 
@@ -449,14 +478,14 @@ func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
-	err := CollectFromSocket(e.socketFamily, e.host, e.tlsConfig, ch)
+	err := CollectFromSocket(e.socketFamily, e.host, e.tlsConfig, e.threads, ch)
 	if err == nil {
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
 			1.0)
 	} else {
-		log.Error("Failed to scrape socket: %s", err)
+		log.Errorf("Failed to scrape socket: %s", err)
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
@@ -472,11 +501,12 @@ func main() {
 		unboundCa     = flag.String("unbound.ca", "/etc/unbound/unbound_server.pem", "Unbound server certificate.")
 		unboundCert   = flag.String("unbound.cert", "/etc/unbound/unbound_control.pem", "Unbound client certificate.")
 		unboundKey    = flag.String("unbound.key", "/etc/unbound/unbound_control.key", "Unbound client key.")
+		threads       = flag.Bool("threads", true, "Export per thread metrics.")
 	)
 	flag.Parse()
 
 	log.Info("Starting unbound_exporter")
-	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
+	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey, *threads)
 	if err != nil {
 		panic(err)
 	}
