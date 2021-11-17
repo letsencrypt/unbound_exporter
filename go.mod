@@ -1,4 +1,4 @@
-module github.com/kumina/unbound_exporter
+module github.com/letsencrypt/unbound_exporter
 
 go 1.16
 
