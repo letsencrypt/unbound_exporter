@@ -31,12 +31,15 @@ import (
 
 	"sort"
 
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/promlog"
 )
 
 var (
+	log = promlog.New(&promlog.Config{})
+
 	unboundUpDesc = prometheus.NewDesc(
 		prometheus.BuildFQName("unbound", "", "up"),
 		"Whether scraping Unbound's metrics was successful.",
@@ -108,6 +111,12 @@ var (
 			prometheus.CounterValue,
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.queries$"),
+		newUnboundMetric(
+			"expired_total",
+			"Total number of expired entries served.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.expired$"),
 		newUnboundMetric(
 			"query_classes_total",
 			"Total number of queries with a given query class.",
@@ -276,7 +285,7 @@ func newUnboundMetric(name string, description string, valueType prometheus.Valu
 func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
-	histogramPattern := regexp.MustCompile("^histogram\\.\\d+\\.\\d+\\.to\\.(\\d+\\.\\d+)$")
+	histogramPattern := regexp.MustCompile(`^histogram\.\d+\.\d+\.to\.(\d+\.\d+)$`)
 
 	histogramCount := uint64(0)
 	histogramAvg := float64(0)
@@ -351,14 +360,6 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	return scanner.Err()
 }
 
-func CollectFromFile(path string, ch chan<- prometheus.Metric) error {
-	conn, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	return CollectFromReader(conn, ch)
-}
-
 func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) error {
 	var (
 		conn net.Conn
@@ -373,6 +374,7 @@ func CollectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, 
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	_, err = conn.Write([]byte("UBCT1 stats_noreset\n"))
 	if err != nil {
 		return err
@@ -456,7 +458,7 @@ func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1.0)
 	} else {
-		log.Error("Failed to scrape socket: %s", err)
+		_ = level.Error(log).Log("Failed to scrape socket: ", err)
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
@@ -475,7 +477,7 @@ func main() {
 	)
 	flag.Parse()
 
-	log.Info("Starting unbound_exporter")
+	_ = level.Info(log).Log("Starting unbound_exporter")
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -484,7 +486,7 @@ func main() {
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`
+		_, _ = w.Write([]byte(`
 			<html>
 			<head><title>Unbound Exporter</title></head>
 			<body>
@@ -493,6 +495,7 @@ func main() {
 			</body>
 			</html>`))
 	})
-	log.Info("Listening on address:port => ", *listenAddress)
-	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+	_ = level.Info(log).Log("Listening on address:port => ", *listenAddress)
+	_ = level.Error(log).Log(http.ListenAndServe(*listenAddress, nil))
+	os.Exit(1)
 }
