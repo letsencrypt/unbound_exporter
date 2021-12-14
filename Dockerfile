@@ -13,4 +13,4 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -v -a -ldflags
 FROM scratch
 COPY --from=build-env /go/bin/unbound_exporter /usr/bin/unbound_exporter
 ENTRYPOINT ["unbound_exporter"]
-CMD ["--unbound.host", "tcp://localhost:8953"]
+CMD ["-unbound.host", "tcp://localhost:8953"]
