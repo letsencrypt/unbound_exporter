@@ -1,0 +1,42 @@
+name: Web client CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [15.11.x]
+    steps:
+    - uses: actions/checkout@v2.4.0
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2.5.1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Install & lint
+      run: |
+        cd client
+        yarn install --immutable
+        yarn lint
+    - name: Build
+      run: |
+        cd client
+        yarn build
+    - name: Test
+      run: |
+        cd client
+        yarn test:unit
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v1.0.2
+    #   with:
+    #     token: ${{secrets.CODECOV_TOKEN}}
+    #     file: ./client/coverage/coverage-final.json
+    #     flags: unittests
+    #     name: codecov-umbrella
