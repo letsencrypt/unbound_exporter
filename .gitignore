@@ -1,2 +1,3 @@
-unbound_exporter
 .idea/
+_out/*
+!_out/.keep
