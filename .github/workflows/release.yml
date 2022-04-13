@@ -1,0 +1,40 @@
+name: Build and Release
+on:
+  # Runs automatically when a tag beginning with 'release-' is pushed.
+  push:
+    tags:
+      - release-*
+
+permissions:
+  # Overrides the org default of 'read'. This allows us to upload and post the
+  # resulting package file as part of a release.
+  contents: write
+
+jobs:
+  gh-release:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18.1'
+
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: build and release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # https://cli.github.com/manual/gh_release_create
+        run: |
+          go build
+
+          fpm -f -s dir -t deb --name "prometheus_unbound_exporter" \
+            --license "Apache 2.0" --vendor "ISRG" \
+            --url "https://github.com/letsencrypt/unbound_exporter" --prefix=/opt/prometheus/bin/ \
+            --version "$(GITHUB_REF)" --iteration "$(GITHUB_SHA)" --epoch "1" \
+            --package "prometheus_unbound_exporter-$(GITHUB_REF)-$(GITHUB_SHA).x86_64.deb" \
+            --description "Prometheus Exporter for Unbound" \
+            unbound_exporter
+
+          gh release create "${GITHUB_REF_NAME}" *.deb
