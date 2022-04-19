@@ -22,6 +22,10 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: build nfpm
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+
       - name: build and release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,12 +33,6 @@ jobs:
         run: |
           go build
 
-          fpm -f -s dir -t deb --name "prometheus_unbound_exporter" \
-            --license "Apache 2.0" --vendor "ISRG" \
-            --url "https://github.com/letsencrypt/unbound_exporter" --prefix=/opt/prometheus/bin/ \
-            --version "$(GITHUB_REF)" --iteration "$(GITHUB_SHA)" --epoch "1" \
-            --package "prometheus_unbound_exporter-$(GITHUB_REF)-$(GITHUB_SHA).x86_64.deb" \
-            --description "Prometheus Exporter for Unbound" \
-            unbound_exporter
+          nfpm package -p deb -t /tmp/prometheus_unbound_exporter-$(GITHUB_REF).x86_64.deb
 
           gh release create "${GITHUB_REF_NAME}" *.deb
