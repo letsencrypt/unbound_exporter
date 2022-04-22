@@ -22,15 +22,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: build nfpm
-        run: |
-          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.15.1
+      - name: build binary
+        run: go build
+
+      - name: install nfpm
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.15.1
 
       - name: build deb
-        run: |
-          go build
-
-          nfpm package -p deb -t unbound_exporter.deb
+        run: nfpm package -p deb -t unbound_exporter.deb
 
       - name: upload deb
         uses: actions/upload-artifact@v3
