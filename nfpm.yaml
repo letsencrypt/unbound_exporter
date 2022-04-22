@@ -1,0 +1,12 @@
+name: "unbound_exporter"
+arch: "amd64"
+platform: "linux"
+version: "${GITHUB_REF_NAME}"
+description: "Prometheus exporter for Unbound recursive DNS resolver"
+vendor: "ISRG"
+maintainer: "ISRG Team <opensource@letsencrypt.org>"
+homepage: "https://github.com/letsencrypt/unbound_exporter"
+license: "Apache 2.0"
+contents:
+- src: unbound_exporter
+  dst: /usr/bin/unbound_exporter
