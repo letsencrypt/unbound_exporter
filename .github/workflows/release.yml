@@ -58,5 +58,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # https://cli.github.com/manual/gh_release_create
-        run: |
-          gh release create "${GITHUB_REF_NAME}" unbound_exporter-${GITHUB_REF_NAME}.x86_64.deb
+        run: gh release create "${GITHUB_REF_NAME}" unbound_exporter-${GITHUB_REF_NAME}.x86_64.deb
