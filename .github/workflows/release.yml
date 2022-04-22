@@ -30,7 +30,7 @@ jobs:
         run: |
           go build
 
-          nfpm package -p deb -t /tmp/unbound_exporter.deb
+          nfpm package -p deb -t unbound_exporter.deb
 
       - name: upload deb
         uses: actions/upload-artifact@v3
