@@ -1,18 +1,18 @@
-name: Build and Release
+name: Build and release
 on:
-  # Runs automatically when a tag beginning with 'release-' is pushed.
+  # Runs automatically when a tag beginning with 'v' (i.e. a versioned release) is pushed.
   push:
     tags:
-      - release-*
-
-permissions:
-  # Overrides the org default of 'read'. This allows us to upload and post the
-  # resulting package file as part of a release.
-  contents: write
+      - v*
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  gh-release:
+  build-release:
     runs-on: ubuntu-20.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/setup-go@v3
         with:
@@ -24,15 +24,40 @@ jobs:
 
       - name: build nfpm
         run: |
-          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.15.1
 
-      - name: build and release
+      - name: build deb
+        run: |
+          go build
+
+          nfpm package -p deb -t /tmp/unbound_exporter.deb
+
+      - name: upload deb
+        uses: actions/upload-artifact@v3
+        with:
+          name: unbound_exporter deb artifact
+          path: unbound_exporter.deb
+
+  push-release:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: build-release
+    runs-on: ubuntu-20.04
+    # Overrides the org default of 'read'. This allows us to upload and post the
+    # resulting package file as part of a release.
+    permissions:
+      contents: write
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: unbound_exporter deb artifact
+
+      - name: rename
+        run: mv unbound_exporter.deb unbound_exporter-${GITHUB_REF_NAME}.x86_64.deb
+
+      - name: push release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # https://cli.github.com/manual/gh_release_create
         run: |
-          go build
-
-          nfpm package -p deb -t /tmp/prometheus_unbound_exporter-$(GITHUB_REF).x86_64.deb
-
-          gh release create "${GITHUB_REF_NAME}" *.deb
+          gh release create "${GITHUB_REF_NAME}" unbound_exporter-${GITHUB_REF_NAME}.x86_64.deb
