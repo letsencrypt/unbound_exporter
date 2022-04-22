@@ -46,6 +46,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
       - name: Download release artifact
         uses: actions/download-artifact@v3
         with:
