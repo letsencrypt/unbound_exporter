@@ -160,6 +160,12 @@ var (
 			nil,
 			"^num\\.query\\.tcp$"),
 		newUnboundMetric(
+			"query_tcpout_total",
+			"Total number of queries that the Unbound server made using TCP outgoing towards other servers.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.tcpout$"),
+		newUnboundMetric(
 			"query_tls_total",
 			"Total number of queries that were made using TCP TLS towards the Unbound server.",
 			prometheus.CounterValue,
@@ -171,6 +177,12 @@ var (
 			prometheus.CounterValue,
 			[]string{"type"},
 			"^num\\.query\\.type\\.([\\w]+)$"),
+		newUnboundMetric(
+			"query_udpout_total",
+			"Total number of queries that the Unbound server made using UDP outgoing towards￼other servers.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.udpout$"),
 		newUnboundMetric(
 			"request_list_current_all",
 			"Current size of the request list, including internally generated queries.",
