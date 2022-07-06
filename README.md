@@ -9,12 +9,16 @@ names and labels by using a set of regular expressions.
 
 - - - -
 
+# Prerequisites
+
+Go 1.16 or above is required.
+
 # Installation
 
-To install this code and in your go environment. You can then add the binary to your `PATH`.
+    go install github.com/letsencrypt/unbound_exporter@latest
 
-    go get github.com/letsencrypt/unbound_exporter
-    go install github.com/letsencrypt/unbound_exporter
+This will install the binary in `$GOBIN`, or `$HOME/go/bin` if
+`$GOBIN` is unset.
 
 # Updating dependencies
 
