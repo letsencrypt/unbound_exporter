@@ -1,0 +1,15 @@
+[Unit]
+Description=Prometheus exporter for Unbound metrics, written in Go with pluggable metric collectors. The metrics exporter converts Unbound metric names to Prometheus metric names and labels by using a set of regular expressions.
+Documentation=https://github.com/letsencrypt/unbound_exporter
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/unbound_exporter \
+    -unbound.ca "/etc/unbound/unbound_server_ec.pem" \
+    -unbound.cert "/etc/unbound/unbound_control_ec.pem" \
+    -unbound.key "/etc/unbound/unbound_control_ec.key" \
+    -unbound.host "tcp://localhost:8953"
+
+[Install]
+WantedBy=multi-user.target
