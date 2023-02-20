@@ -4,10 +4,10 @@
 # up to ~2010. You know, x509v3, secp384r1, AKIs, stuff like that.
 
 # directory for files
-DESTDIR=/etc/unbound
+DESTDIR="${UNBOUND_CONFIG_DIR:-/etc/unbound}"
 
 # validity period for certificates
-DAYS=7200
+DAYS="${UNBOUND_CERT_LIFETIME:-397}"
 
 # hash algorithm
 HASH=sha256
@@ -71,13 +71,12 @@ subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 basicConstraints       = CA:true
 EOCAConfig
-
 test -f ca_request.cfg || error "could not create ca_request.cfg"
 
-echo "create ${CA_BASE}.pem (self signed certificate)"
+echo "creating ${CA_BASE}.pem (self signed certificate)"
 openssl req -key "${CA_BASE}.key" -config ca_request.cfg  -new -x509 -days "${DAYS}" -out "${CA_BASE}.pem" || error "could not create ${CA_BASE}.pem"
-# create trusted usage pem
-openssl x509 -in "${CA_BASE}.pem" -addtrust serverAuth -out "${CA_BASE}_trust.pem"
+
+# --------------
 
 # create server cert CSR and sign it, piped
 cat > server_request.cfg <<EOServerConfig
@@ -88,24 +87,26 @@ distinguished_name     = req_distinguished_name
 [req_distinguished_name]
 commonName             = unbound
 EOServerConfig
+test -f server_request.cfg || error "could not create server_request.cfg"
 
 cat > server_exts.cfg <<EOServerConfig
 subjectAltName         = @alt_names
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid:always,issuer:always
+extendedKeyUsage       = serverAuth
 
 [alt_names]
 DNS.1                  = $(hostname)
 DNS.2                  = unbound
 DNS.3                  = localhost
 EOServerConfig
-
-test -f server_request.cfg || error "could not create server_request.cfg"
+test -f server_exts.cfg || error "could not create server_exts.cfg"
 
 echo "create ${SVR_BASE}.pem (signed server certificate)"
-openssl req -key "${SVR_BASE}.key" -config server_request.cfg -new | openssl x509 -req -days "${DAYS}" -CA "${CA_BASE}_trust.pem" -CAkey "${CA_BASE}.key" -CAcreateserial -"${HASH}" -extfile server_exts.cfg -out "${SVR_BASE}.pem"
+openssl req -key "${SVR_BASE}.key" -config server_request.cfg -new | openssl x509 -req -days "${DAYS}" -CA "${CA_BASE}.pem" -CAkey "${CA_BASE}.key" -CAcreateserial -"${HASH}" -extfile server_exts.cfg -out "${SVR_BASE}.pem"
 test -f ${SVR_BASE}.pem || error "could not create ${SVR_BASE}.pem"
 
+# --------------
 
 # create client cert CSR and sign it, piped
 cat > client_request.cfg <<EOCertConfig
@@ -116,20 +117,25 @@ distinguished_name     = req_distinguished_name
 [req_distinguished_name]
 commonName             = unbound-control
 EOCertConfig
-
 test -f client_request.cfg || error "could not create client_request.cfg"
 
+cat > client_exts.cfg <<EOCertConfig
+extendedKeyUsage       = clientAuth
+EOCertConfig
+test -f client_exts.cfg || error "could not create client_exts.cfg"
+
 echo "create ${CTL_BASE}.pem (signed client certificate)"
-openssl req -key "${CTL_BASE}.key" -config client_request.cfg -new | openssl x509 -req -days "${DAYS}" -CA "${CA_BASE}_trust.pem" -CAkey "${CA_BASE}.key" -CAcreateserial -"${HASH}" -out "${CTL_BASE}.pem"
+openssl req -key "${CTL_BASE}.key" -config client_request.cfg -new | openssl x509 -req -days "${DAYS}" -CA "${CA_BASE}.pem" -CAkey "${CA_BASE}.key" -CAcreateserial -"${HASH}" -extfile client_exts.cfg -out "${CTL_BASE}.pem"
 test -f "${CTL_BASE}.pem" || error "could not create ${CTL_BASE}.pem"
+
+# --------------
 
 # set desired permissions
 chmod 0640 "${CA_BASE}.key" "${SVR_BASE}.key" "${CTL_BASE}.key"
 chmod 0644 "${CA_BASE}.pem" "${SVR_BASE}.pem" "${CTL_BASE}.pem"
 
 # cleanup
-rm -f ca_request.cfg client_request.cfg server_request.cfg server_exts.cfg
-rm -f "${CA_BASE}_trust.pem" "${CA_BASE}_trust.srl"
+rm -f ca_request.cfg client_request.cfg client_exts.cfg server_request.cfg server_exts.cfg  *.srl
 
 openssl x509 -text -in "${CA_BASE}.pem"
 openssl x509 -text -in "${SVR_BASE}.pem"
