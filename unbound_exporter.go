@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -421,7 +420,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 	}
 
 	/* Server authentication. */
-	caData, err := ioutil.ReadFile(ca)
+	caData, err := io.ReadFile(ca)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
@@ -431,11 +430,11 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 	}
 
 	/* Client authentication. */
-	certData, err := ioutil.ReadFile(cert)
+	certData, err := io.ReadFile(cert)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
-	keyData, err := ioutil.ReadFile(key)
+	keyData, err := io.ReadFile(key)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
