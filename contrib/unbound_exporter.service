@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/bin/unbound_exporter \
-    -unbound.ca "/etc/unbound/unbound_server_ec.pem" \
+    -unbound.ca "/etc/unbound/unbound_ca_ec.pem" \
     -unbound.cert "/etc/unbound/unbound_control_ec.pem" \
     -unbound.key "/etc/unbound/unbound_control_ec.key" \
     -unbound.host "tcp://localhost:8953"
