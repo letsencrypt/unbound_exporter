@@ -420,7 +420,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 	}
 
 	/* Server authentication. */
-	caData, err := io.ReadFile(ca)
+	caData, err := os.ReadFile(ca)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
@@ -430,11 +430,11 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 	}
 
 	/* Client authentication. */
-	certData, err := io.ReadFile(cert)
+	certData, err := os.ReadFile(cert)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
-	keyData, err := io.ReadFile(key)
+	keyData, err := os.ReadFile(key)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
