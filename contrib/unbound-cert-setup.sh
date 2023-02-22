@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Generally based on /usr/sbin/unbound-control-setup but adapted to catch
 # up to ~2010. You know, x509v3, secp384r1, AKIs, stuff like that.
