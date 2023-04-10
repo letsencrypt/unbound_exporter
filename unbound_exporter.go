@@ -154,7 +154,7 @@ var (
 			"^num\\.query\\.edns\\.present$"),
 		newUnboundMetric(
 			"query_tcp_total",
-			"Total number of queries that were made using TCP towards the Unbound server.",
+			"Total number of queries that were made using TCP towards the Unbound server, including DoT and DoH queries.",
 			prometheus.CounterValue,
 			nil,
 			"^num\\.query\\.tcp$"),
@@ -166,10 +166,22 @@ var (
 			"^num\\.query\\.tcpout$"),
 		newUnboundMetric(
 			"query_tls_total",
-			"Total number of queries that were made using TCP TLS towards the Unbound server.",
+			"Total number of queries that were made using TCP TLS towards the Unbound server, including DoH queries.",
 			prometheus.CounterValue,
 			nil,
 			"^num\\.query\\.tls$"),
+		newUnboundMetric(
+			"query_tls_resume_total",
+			"Total number of queries that were made using TCP TLS Resume towards the Unbound server.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.tls\\.resume$"),
+		newUnboundMetric(
+			"query_https_total",
+			"Total number of queries that were made using HTTPS towards the Unbound server.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.https$"),
 		newUnboundMetric(
 			"query_types_total",
 			"Total number of queries with a given query type.",
