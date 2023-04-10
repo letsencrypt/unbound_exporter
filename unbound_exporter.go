@@ -183,6 +183,12 @@ var (
 			nil,
 			"^num\\.query\\.udpout$"),
 		newUnboundMetric(
+			"query_aggressive_nsec",
+			"Total number of queries that the Unbound server generated response using Aggressive NSEC.",
+			prometheus.CounterValue,
+			[]string{"rcode"},
+			"^num\\.query\\.aggressive\\.(\\w+)$"),
+		newUnboundMetric(
 			"request_list_current_all",
 			"Current size of the request list, including internally generated queries.",
 			prometheus.GaugeValue,
