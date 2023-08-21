@@ -166,7 +166,7 @@ var (
 			"^num\\.query\\.tcpout$"),
 		newUnboundMetric(
 			"query_tls_total",
-			"Total number of queries that were made using TCP TLS towards the Unbound server, including DoH queries.",
+			"Total number of queries that were made using TCP TLS towards the Unbound server, including DoT and DoH queries.",
 			prometheus.CounterValue,
 			nil,
 			"^num\\.query\\.tls$"),
