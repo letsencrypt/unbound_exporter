@@ -417,7 +417,7 @@ type UnboundExporter struct {
 	tlsConfig    *tls.Config
 }
 
-func NewUnboundExporter(host string, ca string, cert string, key string) (*UnboundExporter, error) {
+func NewUnboundExporter(host string, ca string, cert string, key string, tlsSkipVerify bool) (*UnboundExporter, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return &UnboundExporter{}, err
@@ -465,9 +465,10 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 		socketFamily: u.Scheme,
 		host:         u.Host,
 		tlsConfig: &tls.Config{
-			Certificates: []tls.Certificate{keyPair},
-			RootCAs:      roots,
-			ServerName:   "unbound",
+			Certificates:       []tls.Certificate{keyPair},
+			RootCAs:            roots,
+			ServerName:         "unbound",
+			InsecureSkipVerify: tlsSkipVerify,
 		},
 	}, nil
 }
@@ -503,11 +504,12 @@ func main() {
 		unboundCa     = flag.String("unbound.ca", "/etc/unbound/unbound_server.pem", "Unbound server certificate.")
 		unboundCert   = flag.String("unbound.cert", "/etc/unbound/unbound_control.pem", "Unbound client certificate.")
 		unboundKey    = flag.String("unbound.key", "/etc/unbound/unbound_control.key", "Unbound client key.")
+		tlsSkipVerify = flag.Bool("tls.skip-verify", false, "Skip unbound certificate verify")
 	)
 	flag.Parse()
 
 	_ = level.Info(log).Log("Starting unbound_exporter")
-	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
+	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey, *tlsSkipVerify)
 	if err != nil {
 		panic(err)
 	}
