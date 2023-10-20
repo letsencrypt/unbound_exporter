@@ -81,6 +81,24 @@ var (
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.cachemiss$"),
 		newUnboundMetric(
+			"queries_cookie_client_total",
+			"Total number of queries with a client cookie.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_cookie_client$"),
+		newUnboundMetric(
+			"queries_cookie_invalid_total",
+			"Total number of queries with a invalid cookie.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_invalid_client$"),
+		newUnboundMetric(
+			"queries_cookie_valid_total",
+			"Total number of queries with a valid cookie.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_cookie_valid$"),
+		newUnboundMetric(
 			"memory_caches_bytes",
 			"Memory in bytes in use by caches.",
 			prometheus.GaugeValue,
