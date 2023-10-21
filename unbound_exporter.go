@@ -255,6 +255,12 @@ var (
 			nil,
 			"^num\\.rrset\\.bogus$"),
 		newUnboundMetric(
+			"rrset_cache_max_collisions_total",
+			"Total number of rrset cache hashtable collisions.",
+			prometheus.CounterValue,
+			nil,
+			"^rrset\\.cache\\.max_collisions$"),
+		newUnboundMetric(
 			"time_elapsed_seconds",
 			"Time since last statistics printout in seconds.",
 			prometheus.CounterValue,
@@ -302,6 +308,12 @@ var (
 			prometheus.GaugeValue,
 			nil,
 			"^msg\\.cache\\.count$"),
+		newUnboundMetric(
+			"msg_cache_max_collisions_total",
+			"Total number of msg cache hashtable collisions.",
+			prometheus.CounterValue,
+			nil,
+			"^msg\\.cache\\.max_collisions$"),
 		newUnboundMetric(
 			"rrset_cache_count",
 			"The Number of rrset cached",
