@@ -1,0 +1,75 @@
+Source: unbound-exporter
+Maintainer: Debian Go Packaging Team <team+pkg-go@tracker.debian.org>
+Uploaders: Alexandros Afentoulis <alexandros.afentoulis@exoscale.ch>
+Section: golang
+Testsuite: autopkgtest-pkg-go
+Priority: optional
+Build-Depends: debhelper-compat (= 13),
+               dh-golang,
+               golang-any,
+               golang-github-go-kit-log-dev,
+               golang-github-prometheus-common-dev,
+               golang-prometheus-client-dev
+Standards-Version: 4.6.0
+Vcs-Browser: https://salsa.debian.org/go-team/packages/unbound-exporter
+Vcs-Git: https://salsa.debian.org/go-team/packages/unbound-exporter.git
+Homepage: https://github.com/letsencrypt/unbound_exporter
+Rules-Requires-Root: no
+XS-Go-Import-Path: github.com/letsencrypt/unbound_exporter
+
+Package: unbound-exporter
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Built-Using: ${misc:Built-Using}
+Description: A Prometheus exporter for Unbound. (program)
+ Prometheus Unbound exporter
+ .
+ This repository provides code for a simple Prometheus metrics exporter
+ for the Unbound DNS resolver (https://unbound.net/). This exporter
+ connects to Unbounds TLS control socket and sends the stats_noreset
+ command, causing Unbound to return metrics as key-value pairs. The
+ metrics exporter converts Unbound metric names to Prometheus metric
+ names and labels by using a set of regular expressions.
+ .
+ ------------------------------------------------------------------------
+ .
+ Prerequisites
+ .
+ Go 1.16 or above is required.
+ .
+ Installation
+ .
+   go install github.com/letsencrypt/unbound_exporter@latest
+ .
+ This will install the binary in $GOBIN, or $HOME/go/bin if $GOBIN is
+ unset.
+ .
+ Updating dependencies
+ .
+   go get -u
+   go mod tidy
+ .
+ ------------------------------------------------------------------------
+ .
+ Usage
+ .
+ To show all CLI flags available
+ .
+   $ unbound_exporter -h
+ .
+ Scrape metrics from the exporter
+ .
+   $ curl 127.0.0.1:9167/metrics | grep '^unbound_up'
+   unbound_up 1
+ .
+ From the Unbound statistics doc
+ (https://www.nlnetlabs.nl/documentation/unbound/howto-statistics/):
+ Unbound has an option to enable extended statistics collection. If
+ enabled, more statistics are collected, for example what types of
+ queries are sent to the resolver. Otherwise, only the total number of
+ queries is collected. Add the following to your unbound.conf.
+ .
+   server:
+       extended-statistics: yes
+

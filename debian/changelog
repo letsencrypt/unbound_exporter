@@ -1,0 +1,5 @@
+unbound-exporter (0.4.4-1) UNRELEASED; urgency=medium
+
+  * Initial release
+
+ -- Alexandros Afentoulis <alexandros.afentoulis@exoscale.ch>  Wed, 08 Nov 2023 13:06:51 +0200
