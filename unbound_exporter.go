@@ -81,6 +81,24 @@ var (
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.cachemiss$"),
 		newUnboundMetric(
+			"queries_cookie_client_total",
+			"Total number of queries with a client cookie.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_cookie_client$"),
+		newUnboundMetric(
+			"queries_cookie_invalid_total",
+			"Total number of queries with a invalid cookie.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_invalid_client$"),
+		newUnboundMetric(
+			"queries_cookie_valid_total",
+			"Total number of queries with a valid cookie.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_cookie_valid$"),
+		newUnboundMetric(
 			"memory_caches_bytes",
 			"Memory in bytes in use by caches.",
 			prometheus.GaugeValue,
@@ -237,6 +255,12 @@ var (
 			nil,
 			"^num\\.rrset\\.bogus$"),
 		newUnboundMetric(
+			"rrset_cache_max_collisions_total",
+			"Total number of rrset cache hashtable collisions.",
+			prometheus.CounterValue,
+			nil,
+			"^rrset\\.cache\\.max_collisions$"),
+		newUnboundMetric(
 			"time_elapsed_seconds",
 			"Time since last statistics printout in seconds.",
 			prometheus.CounterValue,
@@ -284,6 +308,12 @@ var (
 			prometheus.GaugeValue,
 			nil,
 			"^msg\\.cache\\.count$"),
+		newUnboundMetric(
+			"msg_cache_max_collisions_total",
+			"Total number of msg cache hashtable collisions.",
+			prometheus.CounterValue,
+			nil,
+			"^msg\\.cache\\.max_collisions$"),
 		newUnboundMetric(
 			"rrset_cache_count",
 			"The Number of rrset cached",
