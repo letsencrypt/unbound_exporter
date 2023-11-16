@@ -1,0 +1,27 @@
+---
+name: integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.x"
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Start containers
+        run: docker compose up --build --detach
+      - name: run integration test
+        run: go test --tags=integration
+      - name: Stop containers
+        if: always()
+        run: docker compose down
