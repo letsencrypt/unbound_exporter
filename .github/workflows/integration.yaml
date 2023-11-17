@@ -21,7 +21,7 @@ jobs:
       - name: Start containers
         run: docker compose up --build --detach
       - name: run integration test
-        run: go test --tags=integration
+        run: go test -v --tags=integration
       - name: Stop containers
         if: always()
         run: docker compose down
