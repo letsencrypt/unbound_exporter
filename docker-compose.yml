@@ -1,0 +1,21 @@
+services:
+  unbound_exporter:
+    build: .
+    command: [ "-unbound.host=unix:///var/run/socket/unbound.ctl" ]
+    volumes:
+      - socket:/var/run/socket:ro
+    ports:
+      - "9167:9167"
+    depends_on:
+      unbound:
+        condition: service_started
+  unbound:
+    image: "mvance/unbound:1.18.0"
+    volumes:
+      - socket:/var/run/socket:rw
+      - ./unbound-example.conf:/opt/unbound/etc/unbound/unbound.conf
+    ports:
+      - "1053:1053/udp"
+      - "1053:1053/tcp"
+volumes:
+  socket:
