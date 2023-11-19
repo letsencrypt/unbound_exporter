@@ -8,10 +8,11 @@ COPY go.sum .
 RUN go mod download
 
 COPY *.go .
+COPY internal internal
 
 ENV CGO_ENABLED=0
 
-RUN GOOS=$TARGETOS GOARCH=$TARGETPLATFORM go build -v -o /go/bin/unbound_exporter ./...
+RUN GOOS=$TARGETOS GOARCH=$TARGETPLATFORM go build -v -o /go/bin/unbound_exporter .
 
 FROM gcr.io/distroless/static-debian12
 
