@@ -322,7 +322,7 @@ var (
 			"^rrset\\.cache\\.count$"),
 		newUnboundMetric(
 			"rpz_action_count",
-			"Total number of triggered Response Policy Zone actions, by action.",
+			"Total number of triggered Response Policy Zone actions, by type.",
 			prometheus.CounterValue,
 			[]string{"type"},
 			"^num\\.rpz\\.action\\.rpz-([\\w-]+)$",
