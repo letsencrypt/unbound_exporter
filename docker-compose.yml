@@ -14,6 +14,7 @@ services:
     volumes:
       - socket:/var/run/socket:rw
       - ./unbound-example.conf:/opt/unbound/etc/unbound/unbound.conf
+      - ./droplist.zone:/opt/unbound/etc/unbound/droplist.zone
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"

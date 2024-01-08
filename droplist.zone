@@ -1,0 +1,2 @@
+*.example.com IN A 127.0.0.1
+*.example.net IN A 127.0.0.1
