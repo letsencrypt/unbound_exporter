@@ -327,7 +327,7 @@ var (
 			[]string{"type"},
 			"^num\\.rpz\\.action\\.rpz-([\\w-]+)$"),
 		newUnboundMetric(
-			"memory_http_bytes",
+			"memory_doh_bytes",
 			"Memory used by DoH buffers, in bytes.",
 			prometheus.GaugeValue,
 			[]string{"buffer"},
