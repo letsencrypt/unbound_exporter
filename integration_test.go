@@ -44,7 +44,14 @@ func TestIntegration(t *testing.T) {
 	}
 
 	// Check some expected metrics are present
-	for _, metric := range []string{"go_info", "unbound_queries_total", "unbound_response_time_seconds", "unbound_cache_hits_total"} {
+	for _, metric := range []string{
+		"go_info",
+		"unbound_queries_total",
+		"unbound_response_time_seconds",
+		"unbound_cache_hits_total",
+		"unbound_query_https_total",
+		"unbound_memory_doh_bytes",
+	} {
 		if _, ok := metrics[metric]; !ok {
 			t.Errorf("Expected metric is missing: %s", metric)
 		}
