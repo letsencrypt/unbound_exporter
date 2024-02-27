@@ -27,6 +27,7 @@ go get -u
 go mod tidy
 ```
 
+To install unbound with grafana: https://github.com/jianershi/unbound-config
 - - - -
 
 # Usage - Unix socket
