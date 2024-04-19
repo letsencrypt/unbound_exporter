@@ -68,36 +68,36 @@ var (
 			prometheus.CounterValue,
 			nil,
 			"^num\\.answer\\.secure$"),
-		newUnboundMetric(
+		newUnboundMetricThread(
 			"cache_hits_total",
 			"Total number of queries that were successfully answered using a cache lookup.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.cachehits$"),
-		newUnboundMetric(
+			"^thread(\\d+)\\.num\\.cachehits$",
+			"cachehits"),
+		newUnboundMetricThread(
 			"cache_misses_total",
 			"Total number of cache queries that needed recursive processing.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.cachemiss$"),
-		newUnboundMetric(
+			"^thread(\\d+)\\.num\\.cachemiss$",
+			"cache_misses"),
+		newUnboundMetricThread(
 			"queries_cookie_client_total",
 			"Total number of queries with a client cookie.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.queries_cookie_client$"),
-		newUnboundMetric(
+			"^thread(\\d+)\\.num\\.queries_cookie_client$",
+			"queries_cookie_client"),
+		newUnboundMetricThread(
 			"queries_cookie_invalid_total",
 			"Total number of queries with a invalid cookie.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.queries_invalid_client$"),
-		newUnboundMetric(
+			"^thread(\\d+)\\.num\\.queries_invalid_client$",
+			"queries_cookie_invalid"),
+		newUnboundMetricThread(
 			"queries_cookie_valid_total",
 			"Total number of queries with a valid cookie.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.queries_cookie_valid$"),
+			"^thread(\\d+)\\.num\\.queries_cookie_valid$",
+			"queries_cookie_valid"),
 		newUnboundMetric(
 			"memory_caches_bytes",
 			"Memory in bytes in use by caches.",
@@ -116,24 +116,24 @@ var (
 			prometheus.GaugeValue,
 			nil,
 			"^mem\\.total\\.sbrk$"),
-		newUnboundMetric(
+		newUnboundMetricThread(
 			"prefetches_total",
 			"Total number of cache prefetches performed.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.prefetch$"),
-		newUnboundMetric(
+			"^thread(\\d+)\\.num\\.prefetch$",
+			"prefetches"),
+		newUnboundMetricThread(
 			"queries_total",
 			"Total number of queries received.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.queries$"),
-		newUnboundMetric(
+			"^thread(\\d+)\\.num\\.queries$",
+			"queries"),
+		newUnboundMetricThread(
 			"expired_total",
 			"Total number of expired entries served.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.expired$"),
+			"^thread(\\d+)\\.num\\.expired$",
+			"expired"),
 		newUnboundMetric(
 			"query_classes_total",
 			"Total number of queries with a given query class.",
@@ -218,36 +218,36 @@ var (
 			prometheus.CounterValue,
 			[]string{"rcode"},
 			"^num\\.query\\.aggressive\\.(\\w+)$"),
-		newUnboundMetric(
+		newUnboundMetricThread(
 			"request_list_current_all",
 			"Current size of the request list, including internally generated queries.",
 			prometheus.GaugeValue,
-			[]string{"thread"},
-			"^thread([0-9]+)\\.requestlist\\.current\\.all$"),
-		newUnboundMetric(
+			"^thread([0-9]+)\\.requestlist\\.current\\.all$",
+			"request_list_current_all"),
+		newUnboundMetricThread(
 			"request_list_current_user",
 			"Current size of the request list, only counting the requests from client queries.",
 			prometheus.GaugeValue,
-			[]string{"thread"},
-			"^thread([0-9]+)\\.requestlist\\.current\\.user$"),
-		newUnboundMetric(
+			"^thread([0-9]+)\\.requestlist\\.current\\.user$",
+			"request_list_current_user"),
+		newUnboundMetricThread(
 			"request_list_exceeded_total",
 			"Number of queries that were dropped because the request list was full.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread([0-9]+)\\.requestlist\\.exceeded$"),
-		newUnboundMetric(
+			"^thread([0-9]+)\\.requestlist\\.exceeded$",
+			"request_list_exceeded"),
+		newUnboundMetricThread(
 			"request_list_overwritten_total",
 			"Total number of requests in the request list that were overwritten by newer entries.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread([0-9]+)\\.requestlist\\.overwritten$"),
-		newUnboundMetric(
+			"^thread([0-9]+)\\.requestlist\\.overwritten$",
+			"request_list_overwritten"),
+		newUnboundMetricThread(
 			"recursive_replies_total",
 			"Total number of replies sent to queries that needed recursive processing.",
 			prometheus.CounterValue,
-			[]string{"thread"},
-			"^thread(\\d+)\\.num\\.recursivereplies$"),
+			"^thread(\\d+)\\.num\\.recursivereplies$",
+			"recursive_replies"),
 		newUnboundMetric(
 			"rrset_bogus_total",
 			"Total number of rrsets marked bogus by the validator.",
@@ -335,10 +335,20 @@ var (
 	}
 )
 
+type threadInfo struct {
+	id      string
+	infoMap map[string]float64
+}
+
 type unboundMetric struct {
-	desc      *prometheus.Desc
-	valueType prometheus.ValueType
-	pattern   *regexp.Regexp
+	desc        *prometheus.Desc
+	valueType   prometheus.ValueType
+	pattern     *regexp.Regexp
+	threadLabel *string
+}
+
+func (t *threadInfo) UpdateValue(key string, value float64) {
+	t.infoMap[key] = value
 }
 
 func newUnboundMetric(name string, description string, valueType prometheus.ValueType, labels []string, pattern string) *unboundMetric {
@@ -353,6 +363,19 @@ func newUnboundMetric(name string, description string, valueType prometheus.Valu
 	}
 }
 
+func newUnboundMetricThread(name string, description string, valueType prometheus.ValueType, pattern string, label string) *unboundMetric {
+	return &unboundMetric{
+		desc: prometheus.NewDesc(
+			prometheus.BuildFQName("unbound", "", name),
+			description,
+			[]string{"thread"},
+			nil),
+		valueType:   valueType,
+		pattern:     regexp.MustCompile(pattern),
+		threadLabel: &label,
+	}
+}
+
 func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
@@ -362,6 +385,7 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 	histogramAvg := float64(0)
 	histogramBuckets := make(map[float64]uint64)
 
+	threadInfoMap := make(map[string]*threadInfo)
 	for scanner.Scan() {
 		fields := strings.Split(scanner.Text(), "=")
 		if len(fields) != 2 {
@@ -382,6 +406,16 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 					metric.valueType,
 					value,
 					matches[1:]...)
+
+				if metric.threadLabel != nil {
+					threadInfoPtr, exists := threadInfoMap[matches[1]]
+					if !exists {
+						threadInfoPtr = &threadInfo{matches[1], map[string]float64{}}
+						threadInfoMap[matches[1]] = threadInfoPtr
+					}
+
+					threadInfoPtr.UpdateValue(*metric.threadLabel, value)
+				}
 
 				break
 			}
@@ -407,6 +441,17 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 			histogramAvg = value
 		}
 	}
+
+	// record thread related metrics
+	ch <- prometheus.MustNewConstMetric(
+		prometheus.NewDesc(
+			prometheus.BuildFQName("unbound", "", "num_threads"),
+			"number of threads",
+			nil,
+			nil),
+		prometheus.GaugeValue,
+		float64(len(threadInfoMap)),
+		[]string{}...)
 
 	// Convert the metrics to a cumulative Prometheus histogram.
 	// Reconstruct the sum of all samples from the average value
