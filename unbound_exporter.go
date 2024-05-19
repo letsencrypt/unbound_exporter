@@ -34,6 +34,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/version"
 )
 
 var (
@@ -548,7 +549,7 @@ func main() {
 	)
 	flag.Parse()
 
-	_ = level.Info(log).Log("Starting unbound_exporter")
+	_ = level.Info(log).Log("msg", "Starting unbound_exporter", "version", version.Info())
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -566,7 +567,7 @@ func main() {
 			</body>
 			</html>`))
 	})
-	_ = level.Info(log).Log("Listening on address:port => ", *listenAddress)
-	_ = level.Error(log).Log(http.ListenAndServe(*listenAddress, nil))
+	_ = level.Info(log).Log("msg", "Listening on address:port => ", *listenAddress)
+	_ = level.Error(log).Log("err", http.ListenAndServe(*listenAddress, nil))
 	os.Exit(1)
 }
