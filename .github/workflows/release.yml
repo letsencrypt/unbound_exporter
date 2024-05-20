@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
 
       - name: build binary
-        run: go build
+        run: go build -ldflags "-X github.com/letsencrypt/unbound_exporter/util.BuildID=$(git rev-parse --short HEAD) -X github.com/letsencrypt/unbound_exporter/util.BuildBranch=$(git rev-parse --abbrev-ref HEAD) -X github.com/letsencrypt/unbound_exporter/util.BuildTime=$(date +%F-%T -u)"
 
       - name: install nfpm
         run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.15.1
