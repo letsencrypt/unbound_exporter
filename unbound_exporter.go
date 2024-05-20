@@ -32,7 +32,7 @@ import (
 	"sort"
 
 	"github.com/go-kit/log/level"
-	"github.com/letsencrypt/unbound_exporter/util"
+	"github.com/letsencrypt/unbound_exporter/build"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
@@ -552,7 +552,7 @@ func main() {
 
 	_ = level.Info(log).Log(
 		"msg", "Starting unbound_exporter",
-		"version", fmt.Sprintf("(version=%s, branch=%s, revision=%s)", runtime.Version(), util.GetBuildBranch(), util.GetBuildID()),
+		"version", fmt.Sprintf("(version=%s, branch=%s, revision=%s)", runtime.Version(), build.GetBranch(), build.GetID()),
 	)
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {

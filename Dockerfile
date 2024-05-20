@@ -1,13 +1,8 @@
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.4-bookworm AS build
 
-WORKDIR /go/src/app
-
-COPY go.mod .
-COPY go.sum .
+VOLUME . /go/src/app
 
 RUN go mod download
-
-COPY *.go .
 
 ENV CGO_ENABLED=0
 
