@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,10 +26,9 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
-
-	"sort"
 
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -332,6 +332,12 @@ var (
 			prometheus.GaugeValue,
 			[]string{"buffer"},
 			"^mem\\.http\\.(\\w+)$"),
+		newUnboundMetric(
+			"infra_cache_count",
+			"Total number of infra cache entries",
+			prometheus.CounterValue,
+			nil,
+			"^infra\\.cache\\.count$"),
 	}
 )
 
@@ -373,7 +379,6 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 		for _, metric := range unboundMetrics {
 			if matches := metric.pattern.FindStringSubmatch(fields[0]); matches != nil {
 				value, err := strconv.ParseFloat(fields[1], 64)
-
 				if err != nil {
 					return err
 				}
@@ -393,7 +398,6 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 				return err
 			}
 			value, err := strconv.ParseUint(fields[1], 10, 64)
-
 			if err != nil {
 				return err
 			}
@@ -486,7 +490,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 	}
 	roots := x509.NewCertPool()
 	if !roots.AppendCertsFromPEM(caData) {
-		return &UnboundExporter{}, fmt.Errorf("Failed to parse CA")
+		return &UnboundExporter{}, errors.New("Failed to parse CA")
 	}
 
 	/* Client authentication. */
