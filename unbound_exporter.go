@@ -25,19 +25,17 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
-	"sort"
-
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promslog"
 )
 
 var (
-	log = promlog.New(&promlog.Config{})
+	log = promslog.New(&promslog.Config{})
 
 	unboundUpDesc = prometheus.NewDesc(
 		prometheus.BuildFQName("unbound", "", "up"),
@@ -529,7 +527,7 @@ func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1.0)
 	} else {
-		_ = level.Error(log).Log("Failed to scrape socket: ", err)
+		log.Error("Failed to scrape socket", "err", err.Error())
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
@@ -548,7 +546,7 @@ func main() {
 	)
 	flag.Parse()
 
-	_ = level.Info(log).Log("Starting unbound_exporter")
+	log.Info("Starting unbound_exporter")
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -566,7 +564,15 @@ func main() {
 			</body>
 			</html>`))
 	})
-	_ = level.Info(log).Log("Listening on address:port => ", *listenAddress)
-	_ = level.Error(log).Log(http.ListenAndServe(*listenAddress, nil))
+	{
+		address, port, err := net.SplitHostPort(*listenAddress)
+		if err != nil {
+			log.Error("Cannot parse web.listen-address", "err", err.Error())
+			os.Exit(1)
+		}
+		log.Info("Listening", "address", address, "port", port)
+	}
+	err = http.ListenAndServe(*listenAddress, nil)
+	log.Error("Listen failed", "err", err.Error())
 	os.Exit(1)
 }
