@@ -472,7 +472,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 		}, nil
 	}
 
-	if ca == "" && cert == "" {
+	if ca == "" && cert == "" && key == "" {
 		return &UnboundExporter{
 			socketFamily: u.Scheme,
 			host:         u.Host,
