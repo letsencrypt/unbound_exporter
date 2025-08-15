@@ -81,6 +81,18 @@ var (
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.cachemiss$"),
 		newUnboundMetric(
+			"query_subnet_total",
+			"Total number of queries that got an answer that contained EDNS client subnet data.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.subnet$"),
+		newUnboundMetric(
+			"query_subnet_cache_total",
+			"Total number of queries answered from the edns client subnet cache.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.subnet_cache$"),
+		newUnboundMetric(
 			"queries_cookie_client_total",
 			"Total number of queries with a client cookie.",
 			prometheus.CounterValue,
