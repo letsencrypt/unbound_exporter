@@ -1,0 +1,14 @@
+# Ignore files
+*.md
+*.sh
+*.yml
+*.yaml
+.gitignore
+
+# Ignore folders
+.github/
+.git/
+contrib/
+
+# Don't include a previously built binary
+unbound_exporter
