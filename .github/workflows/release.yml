@@ -32,7 +32,7 @@ jobs:
         run: nfpm package -p deb -t unbound_exporter.deb
 
       - name: upload deb
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: unbound_exporter deb artifact
           path: unbound_exporter.deb
@@ -51,7 +51,7 @@ jobs:
           persist-credentials: false
 
       - name: Download release artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: unbound_exporter deb artifact
 
