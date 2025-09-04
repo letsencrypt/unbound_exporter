@@ -13,7 +13,7 @@ ENV CGO_ENABLED=0
 
 RUN GOOS=$TARGETOS GOARCH=$TARGETPLATFORM go build -v -o /go/bin/unbound_exporter ./...
 
-FROM gcr.io/distroless/static-debian13
+FROM gcr.io/distroless/static-debian12
 
 COPY --from=build /go/bin/unbound_exporter /
 
