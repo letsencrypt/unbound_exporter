@@ -25,20 +25,17 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
-	"sort"
-
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/version"
+	"github.com/prometheus/common/promslog"
 )
 
 var (
-	log = promlog.New(&promlog.Config{})
+	log = promslog.New(&promslog.Config{})
 
 	unboundUpDesc = prometheus.NewDesc(
 		prometheus.BuildFQName("unbound", "", "up"),
@@ -81,6 +78,18 @@ var (
 			prometheus.CounterValue,
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.cachemiss$"),
+		newUnboundMetric(
+			"query_subnet_total",
+			"Total number of queries that got an answer that contained EDNS client subnet data.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.subnet$"),
+		newUnboundMetric(
+			"query_subnet_cache_total",
+			"Total number of queries answered from the edns client subnet cache.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.subnet_cache$"),
 		newUnboundMetric(
 			"queries_cookie_client_total",
 			"Total number of queries with a client cookie.",
@@ -473,7 +482,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string) (*Unbou
 		}, nil
 	}
 
-	if ca == "" && cert == "" {
+	if ca == "" && cert == "" && key == "" {
 		return &UnboundExporter{
 			socketFamily: u.Scheme,
 			host:         u.Host,
@@ -530,7 +539,7 @@ func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1.0)
 	} else {
-		_ = level.Error(log).Log("Failed to scrape socket: ", err)
+		log.Error("Failed to scrape socket", "err", err.Error())
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
@@ -550,6 +559,7 @@ func main() {
 	flag.Parse()
 
 	_ = level.Info(log).Log("msg", "Starting unbound_exporter", "version", version.Info())
+
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -567,7 +577,16 @@ func main() {
 			</body>
 			</html>`))
 	})
-	_ = level.Info(log).Log("msg", "Listening on address:port => ", *listenAddress)
-	_ = level.Error(log).Log("err", http.ListenAndServe(*listenAddress, nil))
+
+	{
+		address, port, err := net.SplitHostPort(*listenAddress)
+		if err != nil {
+			log.Error("Cannot parse web.listen-address", "err", err.Error())
+			os.Exit(1)
+		}
+		log.Info("Listening", "address", address, "port", port)
+	}
+	err = http.ListenAndServe(*listenAddress, nil)
+	log.Error("Listen failed", "err", err.Error())
 	os.Exit(1)
 }

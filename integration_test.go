@@ -51,6 +51,8 @@ func TestIntegration(t *testing.T) {
 		"unbound_cache_hits_total",
 		"unbound_query_https_total",
 		"unbound_memory_doh_bytes",
+		"unbound_query_subnet_total",
+		"unbound_query_subnet_cache_total",
 	} {
 		if _, ok := metrics[metric]; !ok {
 			t.Errorf("Expected metric is missing: %s", metric)
