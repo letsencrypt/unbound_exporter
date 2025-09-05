@@ -10,13 +10,13 @@ on:
 
 jobs:
   build-release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21.4'
+          go-version: '1.25.x'
 
       - uses: actions/checkout@v4
         with:
@@ -32,7 +32,7 @@ jobs:
         run: nfpm package -p deb -t unbound_exporter.deb
 
       - name: upload deb
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: unbound_exporter deb artifact
           path: unbound_exporter.deb
@@ -40,7 +40,7 @@ jobs:
   push-release:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     needs: build-release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     # Overrides the org default of 'read'. This allows us to upload and post the
     # resulting package file as part of a release.
     permissions:
@@ -51,7 +51,7 @@ jobs:
           persist-credentials: false
 
       - name: Download release artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: unbound_exporter deb artifact
 
