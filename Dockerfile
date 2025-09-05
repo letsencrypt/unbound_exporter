@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21.4-bookworm AS build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.25.1-bookworm AS build
 
 WORKDIR /go/src/app
 

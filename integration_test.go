@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/prometheus/common/model"
 	"net/http"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("Expected a 200 OK from unbound_exporter, got: %v", resp.StatusCode)
 	}
 
-	parser := expfmt.TextParser{}
+	parser := expfmt.NewTextParser(model.UTF8Validation)
 	metrics, err := parser.TextToMetricFamilies(resp.Body)
 	if err != nil {
 		t.Fatalf("Failed to parse metrics from unbound_exporter: %v", err)
