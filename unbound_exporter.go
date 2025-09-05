@@ -563,7 +563,8 @@ func main() {
 	)
 	flag.Parse()
 
-	log.Info("Starting unbound_exporter")
+	_ = level.Info(log).Log("msg", "Starting unbound_exporter", "version", version.Info())
+
 	exporter, err := NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey)
 	if err != nil {
 		panic(err)
@@ -581,6 +582,7 @@ func main() {
 			</body>
 			</html>`))
 	})
+
 	{
 		address, port, err := net.SplitHostPort(*listenAddress)
 		if err != nil {
