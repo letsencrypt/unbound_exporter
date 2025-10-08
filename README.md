@@ -11,7 +11,7 @@ names and labels by using a set of regular expressions.
 
 # Prerequisites
 
-Go 1.20 or above is required.
+Go 1.24 or above is required.
 
 # Installation
 
