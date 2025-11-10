@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promslog"
 )
@@ -569,6 +570,7 @@ func main() {
 		panic(err)
 	}
 	prometheus.MustRegister(exporter)
+	prometheus.MustRegister(version.NewCollector("unbound_exporter"))
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

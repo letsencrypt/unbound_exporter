@@ -3,11 +3,11 @@
 package main
 
 import (
-	"github.com/prometheus/common/model"
 	"net/http"
 	"testing"
 
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 )
 
 // TestIntegration checks that unbound_exporter is running, successfully
@@ -47,6 +47,7 @@ func TestIntegration(t *testing.T) {
 	// Check some expected metrics are present
 	for _, metric := range []string{
 		"go_info",
+		"unbound_exporter_build_info",
 		"unbound_queries_total",
 		"unbound_response_time_seconds",
 		"unbound_cache_hits_total",
