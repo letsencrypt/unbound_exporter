@@ -463,60 +463,63 @@ type UnboundExporter struct {
 	unboundUp atomic.Bool
 }
 
+func tlsConfig(ca string, cert string, key string) (*tls.Config, error) {
+	// Server authentication
+	caData, err := os.ReadFile(ca)
+	if err != nil {
+		return nil, err
+	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(caData) {
+		return nil, errors.New("failed to parse CA")
+	}
+
+	// Client authentication
+	certData, err := os.ReadFile(cert)
+	if err != nil {
+		return nil, err
+	}
+
+	keyData, err := os.ReadFile(key)
+	if err != nil {
+		return nil, err
+	}
+
+	keyPair, err := tls.X509KeyPair(certData, keyData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{keyPair},
+		RootCAs:      roots,
+		ServerName:   "unbound",
+	}, nil
+}
+
 func NewUnboundExporter(host string, ca string, cert string, key string, log *slog.Logger) (*UnboundExporter, error) {
 	u, err := url.Parse(host)
 	if err != nil {
 		return &UnboundExporter{}, err
 	}
 
-	if u.Scheme == "unix" {
-		return &UnboundExporter{
-			socketFamily: u.Scheme,
-			host:         u.Path,
-		}, nil
-	}
-
-	if ca == "" && cert == "" && key == "" {
-		return &UnboundExporter{
-			socketFamily: u.Scheme,
-			host:         u.Host,
-		}, nil
-	}
-
-	/* Server authentication. */
-	caData, err := os.ReadFile(ca)
-	if err != nil {
-		return &UnboundExporter{}, err
-	}
-	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(caData) {
-		return &UnboundExporter{}, errors.New("failed to parse CA")
-	}
-
-	/* Client authentication. */
-	certData, err := os.ReadFile(cert)
-	if err != nil {
-		return &UnboundExporter{}, err
-	}
-	keyData, err := os.ReadFile(key)
-	if err != nil {
-		return &UnboundExporter{}, err
-	}
-	keyPair, err := tls.X509KeyPair(certData, keyData)
-	if err != nil {
-		return &UnboundExporter{}, err
-	}
-
-	return &UnboundExporter{
+	newExporter := UnboundExporter{
 		log:          log,
 		socketFamily: u.Scheme,
-		host:         u.Host,
-		tlsConfig: &tls.Config{
-			Certificates: []tls.Certificate{keyPair},
-			RootCAs:      roots,
-			ServerName:   "unbound",
-		},
-	}, nil
+		host:         u.Path,
+	}
+
+	if u.Scheme == "unix" || (ca == "" && cert == "" && key == "") {
+		return &newExporter, nil
+	}
+
+	cfg, err := tlsConfig(ca, cert, key)
+	if err != nil {
+		return nil, err
+	}
+	newExporter.tlsConfig = cfg
+
+	return &newExporter, nil
 }
 
 func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
