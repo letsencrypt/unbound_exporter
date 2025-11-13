@@ -14,8 +14,9 @@
 package main
 
 import (
+	"bytes"
 	"flag"
-	"net"
+	"html/template"
 	"net/http"
 	"os"
 
@@ -27,12 +28,65 @@ import (
 	"github.com/letsencrypt/unbound_exporter/exporter"
 )
 
+const homePageTemplate string = `
+<!DOCTYPE html>
+<html>
+	<head><title>Unbound Exporter</title></head>
+	<body>
+		<h1>Unbound Exporter</h1>
+		<p><a href='{{ .MetricsPath }}'>Metrics</a></p>
+		<p><a href='{{ .HealthPath }}'>Health</a></p>
+	</body>
+</html>
+`
+
+// homePageText renders the html template for the homepage with the user-configured links
+func homePageText(metricsPath, healthPath string) []byte {
+	tmpl := template.Must(template.New("homePage").Parse(homePageTemplate))
+
+	var out bytes.Buffer
+	err := tmpl.Execute(&out, struct {
+		MetricsPath string
+		HealthPath  string
+	}{
+		MetricsPath: metricsPath,
+		HealthPath:  healthPath,
+	})
+	if err != nil {
+		panic(err) // Unreachable: Template is static and known to be well-formed
+	}
+	return out.Bytes()
+}
+
+// newMetricServer starts the http server on listenAddress
+func newMetricsServer(listenAddress, metricsPath, healthPath string, exp *exporter.UnboundExporter) error {
+	http.Handle(metricsPath, promhttp.Handler())
+
+	http.HandleFunc(healthPath, func(w http.ResponseWriter, req *http.Request) {
+		if exp.UnboundUp() {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("sad"))
+		}
+	})
+
+	renderedHomePage := homePageText(metricsPath, healthPath)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(renderedHomePage)
+	})
+
+	return http.ListenAndServe(listenAddress, nil)
+}
+
 func main() {
 	log := promslog.New(&promslog.Config{})
 
 	var (
 		listenAddress = flag.String("web.listen-address", ":9167", "Address to listen on for web interface and telemetry.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
+		healthPath    = flag.String("web.health-path", "/_healthz", "Path under which to expose healthcheck.")
 		unboundHost   = flag.String("unbound.host", "tcp://localhost:8953", "Unix or TCP address of Unbound control socket.")
 		unboundCa     = flag.String("unbound.ca", "/etc/unbound/unbound_server.pem", "Unbound server certificate.")
 		unboundCert   = flag.String("unbound.cert", "/etc/unbound/unbound_control.pem", "Unbound client certificate.")
@@ -45,38 +99,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	prometheus.MustRegister(exp)
 	prometheus.MustRegister(version.NewCollector("unbound_exporter"))
 
-	http.Handle(*metricsPath, promhttp.Handler())
-	http.HandleFunc("/_healthz", func(w http.ResponseWriter, req *http.Request) {
-		if exp.UnboundUp() {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("ok"))
-		} else {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte("sad"))
-		}
-	})
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`
-			<html>
-			<head><title>Unbound Exporter</title></head>
-			<body>
-			<h1>Unbound Exporter</h1>
-			<p><a href='` + *metricsPath + `'>Metrics</a></p>
-			</body>
-			</html>`))
-	})
-	{
-		address, port, err := net.SplitHostPort(*listenAddress)
-		if err != nil {
-			log.Error("Cannot parse web.listen-address", "err", err.Error())
-			os.Exit(1)
-		}
-		log.Info("Listening", "address", address, "port", port)
+	log.Info("Starting server", "address", *listenAddress)
+	err = newMetricsServer(*listenAddress, *metricsPath, *healthPath, exp)
+	if err != nil {
+		log.Error("Listen failed", "err", err.Error())
+		os.Exit(1)
 	}
-	err = http.ListenAndServe(*listenAddress, nil)
-	log.Error("Listen failed", "err", err.Error())
-	os.Exit(1)
 }
