@@ -10,11 +10,14 @@ services:
       unbound:
         condition: service_started
   unbound:
-    image: "mvance/unbound:1.18.0"
+    image: "klutchell/unbound:1.24.1"
+    command: [ "-dd", "-v" ]
     volumes:
       - socket:/var/run/socket:rw
-      - ./unbound-example.conf:/opt/unbound/etc/unbound/unbound.conf
-      - ./droplist.zone:/opt/unbound/etc/unbound/droplist.zone
+      - ./configs/unbound-example.conf:/etc/unbound/unbound.conf
+      - ./configs/a-records-example.conf:/etc/unbound/a-records.conf
+      - ./configs/srv-records-example.conf:/etc/unbound/srv-records.conf
+      - ./configs/droplist.zone:/etc/unbound/droplist.zone
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"
