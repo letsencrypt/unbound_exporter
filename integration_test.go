@@ -60,4 +60,14 @@ func TestIntegration(t *testing.T) {
 			t.Errorf("Expected metric is missing: %s", metric)
 		}
 	}
+
+	resp, err = http.Get("http://localhost:9167/_healthz")
+	if err != nil {
+		t.Fatalf("Failed to fetch healthz from unbound_exporter: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unbound_exporter reported unhealthy, status code: %d", resp.StatusCode)
+	}
+
 }
