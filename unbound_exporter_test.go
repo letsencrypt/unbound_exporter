@@ -5,6 +5,7 @@ import "testing"
 // TestTemplate ensures the template for the homepage of unbound_exporter renders and properly escapes
 func TestTemplate(t *testing.T) {
 	const expected = `
+<!DOCTYPE html>
 <html>
 	<head><title>Unbound Exporter</title></head>
 	<body>

@@ -29,6 +29,7 @@ import (
 )
 
 const homePageTemplate string = `
+<!DOCTYPE html>
 <html>
 	<head><title>Unbound Exporter</title></head>
 	<body>
