@@ -332,6 +332,42 @@ var (
 			prometheus.CounterValue,
 			nil,
 			"^infra\\.cache\\.count$"),
+		newUnboundMetric(
+			"memory_doq_bytes",
+			"Memory used by DoQ buffers, in bytes.",
+			prometheus.GaugeValue,
+			[]string{"buffer"},
+			"^mem\\.quic$"),
+		newUnboundMetric(
+			"query_quic_total",
+			"Total number of DNS-over-QUIC (DoQ) queries performed towards the Unbound server.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.quic$"),
+		newUnboundMetric(
+			"dns_error_reports",
+			"Total number of DNS Error Reports generated",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.dns_error_reports$"),
+		newUnboundMetric(
+			"queries_discard_timeout",
+			"Total number of queries removed due to discard-timeout.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.queries_discard_timeout$"),
+		newUnboundMetric(
+			"queries_wait_limit",
+			"Total number of queries removed due to wait-limit.",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.queries_wait_limit$"),
+		newUnboundMetric(
+			"signature_validations",
+			"Total umber of signature validation operations performed by the validator module",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.valops$"),
 	}
 )
 

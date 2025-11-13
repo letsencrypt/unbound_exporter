@@ -21,5 +21,6 @@ services:
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"
+      - "2853:2853/tcp" # DoQ
 volumes:
   socket:
