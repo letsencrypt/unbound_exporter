@@ -29,6 +29,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors/version"
@@ -473,6 +474,9 @@ type UnboundExporter struct {
 	socketFamily string
 	host         string
 	tlsConfig    *tls.Config
+
+	// unboundUp is true if the last scrape was healthy. Used for /_healthz
+	unboundUp atomic.Bool
 }
 
 func NewUnboundExporter(host string, ca string, cert string, key string) (*UnboundExporter, error) {
@@ -540,17 +544,24 @@ func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
 func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
 	err := CollectFromSocket(e.socketFamily, e.host, e.tlsConfig, ch)
 	if err == nil {
+		e.unboundUp.Store(true)
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
 			1.0)
 	} else {
 		log.Error("Failed to scrape socket", "err", err.Error())
+		e.unboundUp.Store(false)
 		ch <- prometheus.MustNewConstMetric(
 			unboundUpDesc,
 			prometheus.GaugeValue,
 			0.0)
 	}
+}
+
+// UnboundUp returns true if we have successfully scraped metrics and Unbound is up.
+func (e *UnboundExporter) UnboundUp() bool {
+	return e.unboundUp.Load()
 }
 
 func main() {
@@ -573,6 +584,15 @@ func main() {
 	prometheus.MustRegister(version.NewCollector("unbound_exporter"))
 
 	http.Handle(*metricsPath, promhttp.Handler())
+	http.HandleFunc("/_healthz", func(w http.ResponseWriter, req *http.Request) {
+		if exporter.UnboundUp() {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("sad"))
+		}
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`
 			<html>
