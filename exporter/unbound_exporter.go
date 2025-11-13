@@ -471,6 +471,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string, log *sl
 
 	if u.Scheme == "unix" {
 		return &UnboundExporter{
+			log:          log,
 			socketFamily: u.Scheme,
 			host:         u.Path,
 		}, nil
@@ -478,6 +479,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string, log *sl
 
 	if ca == "" && cert == "" && key == "" {
 		return &UnboundExporter{
+			log:          log,
 			socketFamily: u.Scheme,
 			host:         u.Host,
 		}, nil
