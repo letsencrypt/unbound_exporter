@@ -67,7 +67,7 @@ func TestIntegration(t *testing.T) {
 	}
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("unbound_exporter reported unhealhty, status code: %d", resp.StatusCode)
+		t.Fatalf("unbound_exporter reported unhealthy, status code: %d", resp.StatusCode)
 	}
 
 }

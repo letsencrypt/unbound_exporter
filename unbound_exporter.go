@@ -476,6 +476,7 @@ type UnboundExporter struct {
 	tlsConfig    *tls.Config
 
 	// unboundUp is true if the last scrape was healthy. Used for /_healthz
+	// False initially, so this will return unhealthy until the first metric scrape has succeeded.
 	unboundUp atomic.Bool
 }
 
