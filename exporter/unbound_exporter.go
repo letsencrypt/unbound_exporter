@@ -536,7 +536,7 @@ func tlsConfig(ca string, cert string, key string) (*tls.Config, error) {
 func NewUnboundExporter(host string, ca string, cert string, key string, log *slog.Logger) (*UnboundExporter, error) {
 	u, err := url.Parse(host)
 	if err != nil {
-		return &UnboundExporter{}, err
+		return nil, err
 	}
 
 	newExporter := UnboundExporter{
