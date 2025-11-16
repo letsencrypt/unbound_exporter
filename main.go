@@ -17,8 +17,6 @@ import (
 	"flag"
 	"os"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/common/promslog"
 
 	"github.com/letsencrypt/unbound_exporter/exporter"
@@ -44,9 +42,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	prometheus.MustRegister(exp)
-	prometheus.MustRegister(version.NewCollector("unbound_exporter"))
 
 	log.Info("Starting server", "address", *listenAddress)
 	err = metrics.NewMetricServer(*listenAddress, *metricsPath, *healthPath, exp)

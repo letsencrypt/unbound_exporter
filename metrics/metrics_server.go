@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/letsencrypt/unbound_exporter/exporter"
@@ -42,6 +44,9 @@ func homePageText(metricsPath, healthPath string) []byte {
 
 // NewMetricServer starts the http server on listenAddress
 func NewMetricServer(listenAddress, metricsPath, healthPath string, exp *exporter.UnboundExporter) error {
+	prometheus.MustRegister(exp)
+	prometheus.MustRegister(version.NewCollector("unbound_exporter"))
+
 	http.Handle(metricsPath, promhttp.Handler())
 
 	http.HandleFunc(healthPath, func(w http.ResponseWriter, req *http.Request) {
