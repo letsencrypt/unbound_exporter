@@ -40,7 +40,8 @@ func main() {
 	log.Info("Starting unbound_exporter")
 	exp, err := exporter.NewUnboundExporter(*unboundHost, *unboundCa, *unboundCert, *unboundKey, log)
 	if err != nil {
-		panic(err)
+		log.Error("Unbound Exporter setup failed", "err", err.Error())
+		os.Exit(1)
 	}
 
 	log.Info("Starting server", "address", *listenAddress)
