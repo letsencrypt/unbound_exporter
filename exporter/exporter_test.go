@@ -33,7 +33,7 @@ func TestCollect(t *testing.T) {
 	close(ch)
 	<-done
 
-	if len(metrics) != 93 {
-		t.Fatal("expected 93 metrics, got ", len(metrics))
+	if len(metrics) != 102 {
+		t.Fatal("expected 102 metrics, got ", len(metrics))
 	}
 }
