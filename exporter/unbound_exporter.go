@@ -219,6 +219,12 @@ var (
 			[]string{"thread"},
 			"^thread([0-9]+)\\.requestlist\\.current\\.all$"),
 		newUnboundMetric(
+			"request_list_current_replies",
+			"Current count of the number of reply entries waiting on request list entries.",
+			prometheus.GaugeValue,
+			[]string{"thread"},
+			"^thread([0-9]+)\\.requestlist\\.current\\.replies$"),
+		newUnboundMetric(
 			"request_list_current_user",
 			"Current size of the request list, only counting the requests from client queries.",
 			prometheus.GaugeValue,
@@ -356,6 +362,12 @@ var (
 			prometheus.CounterValue,
 			[]string{"thread"},
 			"^thread(\\d+)\\.num\\.queries_discard_timeout$"),
+		newUnboundMetric(
+			"queries_replyaddr_limit",
+			"Total number of queries removed due to replyaddr limits.",
+			prometheus.CounterValue,
+			[]string{"thread"},
+			"^thread(\\d+)\\.num\\.queries_replyaddr_limit$"),
 		newUnboundMetric(
 			"queries_wait_limit",
 			"Total number of queries removed due to wait-limit.",
