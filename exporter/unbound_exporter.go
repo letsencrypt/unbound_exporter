@@ -342,7 +342,7 @@ var (
 			"memory_doq_bytes",
 			"Memory used by DoQ buffers, in bytes.",
 			prometheus.GaugeValue,
-			[]string{"buffer"},
+			nil,
 			"^mem\\.quic$"),
 		newUnboundMetric(
 			"query_quic_total",
@@ -417,6 +417,8 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 				"%q is not a valid key-value pair",
 				scanner.Text())
 		}
+
+		fmt.Printf("Parsing metric %s=%s\n", fields[0], fields[1])
 
 		for _, metric := range unboundMetrics {
 			if matches := metric.pattern.FindStringSubmatch(fields[0]); matches != nil {
