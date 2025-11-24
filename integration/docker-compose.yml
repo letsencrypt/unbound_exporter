@@ -1,6 +1,7 @@
 services:
   unbound_exporter:
-    build: .
+    build:
+      context: ..
     command: [ "-unbound.host=unix:///var/run/socket/unbound.ctl" ]
     volumes:
       - socket:/var/run/socket:ro
@@ -10,14 +11,11 @@ services:
       unbound:
         condition: service_started
   unbound:
-    image: "klutchell/unbound:1.24.1"
-    command: [ "-dd", "-v" ]
+    build:
+      context: .
+      dockerfile: unbound.Containerfile
     volumes:
       - socket:/var/run/socket:rw
-      - ./configs/unbound-example.conf:/etc/unbound/unbound.conf
-      - ./configs/a-records-example.conf:/etc/unbound/a-records.conf
-      - ./configs/srv-records-example.conf:/etc/unbound/srv-records.conf
-      - ./configs/droplist.zone:/etc/unbound/droplist.zone
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"

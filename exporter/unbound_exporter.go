@@ -418,8 +418,6 @@ func CollectFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
 				scanner.Text())
 		}
 
-		fmt.Printf("Parsing metric %s=%s\n", fields[0], fields[1])
-
 		for _, metric := range unboundMetrics {
 			if matches := metric.pattern.FindStringSubmatch(fields[0]); matches != nil {
 				value, err := strconv.ParseFloat(fields[1], 64)
