@@ -132,6 +132,7 @@ mem.cache.dnscrypt_nonce=0
 mem.streamwait=0
 mem.http.query_buffer=0
 mem.http.response_buffer=0
+mem.quic=0
 histogram.000000.000000.to.000000.000001=0
 histogram.000000.000001.to.000000.000002=0
 histogram.000000.000002.to.000000.000004=0
