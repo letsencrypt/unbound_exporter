@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -25,7 +26,7 @@ func TestCollect(t *testing.T) {
 		done <- struct{}{}
 	}()
 
-	err = CollectFromReader(testData, ch)
+	err = collectFromReader(compileMetrics(), testData, ch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +34,16 @@ func TestCollect(t *testing.T) {
 	close(ch)
 	<-done
 
-	if len(metrics) != 108 {
-		t.Fatal("expected 108 metrics, got ", len(metrics))
+	if len(metrics) != 109 {
+		t.Fatal("expected 109 metrics, got ", len(metrics))
+	}
+}
+
+func TestLabels(t *testing.T) {
+	for _, metric := range unboundMetrics {
+		r := regexp.MustCompile(metric.pattern)
+		if r.NumSubexp() != len(metric.labels) {
+			t.Errorf("Expected %d patterns in regex, got %d on %s", len(metric.labels), r.NumSubexp(), metric.name)
+		}
 	}
 }
