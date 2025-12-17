@@ -214,6 +214,13 @@ var (
 			"^num\\.query\\.tcpout$",
 		},
 		{
+			"query_tcp_out_total",
+			"Total number of queries that the Unbound server made using TCP outgoing towards other servers (alternative name).",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.query\\.tcpout$",
+		},
+		{
 			"query_tls_total",
 			"Total number of queries that were made using TCP TLS towards the Unbound server, including DoT and DoH queries.",
 			prometheus.CounterValue,
@@ -381,6 +388,7 @@ var (
 			nil,
 			"^rrset\\.cache\\.count$",
 		},
+
 		{
 			"rpz_action_count",
 			"Total number of triggered Response Policy Zone actions, by type.",
@@ -398,7 +406,7 @@ var (
 		{
 			"infra_cache_count",
 			"Total number of infra cache entries",
-			prometheus.CounterValue,
+			prometheus.GaugeValue,
 			nil,
 			"^infra\\.cache\\.count$",
 		},
@@ -597,6 +605,13 @@ var (
 			prometheus.CounterValue,
 			nil,
 			"^num\\.query\\.ratelimited$",
+		},
+		{
+			"answers_bogus_total",
+			"Total number of answers that were bogus (alternative name).",
+			prometheus.CounterValue,
+			nil,
+			"^num\\.answer\\.bogus$",
 		},
 	}
 )
