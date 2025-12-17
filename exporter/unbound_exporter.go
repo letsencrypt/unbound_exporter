@@ -628,7 +628,7 @@ func NewUnboundExporter(host string, ca string, cert string, key string, log *sl
 	newExporter := UnboundExporter{
 		log:          log,
 		socketFamily: u.Scheme,
-		host:         u.Path,
+		host:         u.Host,
 		metrics:      compileMetrics(),
 	}
 
