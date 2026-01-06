@@ -628,11 +628,16 @@ func NewUnboundExporter(host string, ca string, cert string, key string, log *sl
 	newExporter := UnboundExporter{
 		log:          log,
 		socketFamily: u.Scheme,
-		host:         u.Path,
 		metrics:      compileMetrics(),
 	}
 
-	if u.Scheme == "unix" || (ca == "" && cert == "" && key == "") {
+	if u.Scheme == "unix" {
+		newExporter.host = u.Path
+		return &newExporter, nil
+	}
+	newExporter.host = u.Host
+
+	if ca == "" && cert == "" && key == "" {
 		return &newExporter, nil
 	}
 
