@@ -357,7 +357,7 @@ var (
 		},
 		{
 			"msg_cache_count",
-			"The Number of Messages cached",
+			"The number of Messages cached",
 			prometheus.GaugeValue,
 			nil,
 			"^msg\\.cache\\.count$",
@@ -371,7 +371,7 @@ var (
 		},
 		{
 			"rrset_cache_count",
-			"The Number of rrset cached",
+			"The number of rrset cached",
 			prometheus.GaugeValue,
 			nil,
 			"^rrset\\.cache\\.count$",
@@ -441,7 +441,7 @@ var (
 		},
 		{
 			"signature_validations",
-			"Total umber of signature validation operations performed by the validator module",
+			"Total number of signature validation operations performed by the validator module",
 			prometheus.CounterValue,
 			nil,
 			"^num\\.valops$",
