@@ -6,6 +6,7 @@ services:
       dockerfile: setup.Containerfile
     volumes:
       - certs:/certs
+    working_dir: /certs
 
   unbound_exporter:
     build:
@@ -13,10 +14,8 @@ services:
     environment:
       - EXPORTER_COMMAND
     volumes:
-      - socket:/var/run/socket:ro
       - certs:/certs:ro
-      - ./start-exporter.sh:/start-exporter.sh:ro
-    entrypoint: ["/bin/sh", "/start-exporter.sh"]
+    command: ["-unbound.host=tcp://unbound:8954", "-unbound.ca=/certs/unbound_ca.pem", "-unbound.cert=/certs/unbound_control.pem", "-unbound.key=/certs/unbound_control.key"]
     ports:
       - "9167:9167"
     depends_on:
@@ -32,10 +31,9 @@ services:
     environment:
       - UNBOUND_CONFIG
     volumes:
-      - socket:/var/run/socket:rw
       - certs:/certs:ro
       - ./setup-unbound-config.sh:/setup-unbound-config.sh:ro
-    command: ["bash", "/setup-unbound-config.sh"]
+    command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-tls.conf"]
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"
@@ -47,7 +45,6 @@ services:
         condition: service_completed_successfully
 
 volumes:
-  socket:
   certs:
 
 
