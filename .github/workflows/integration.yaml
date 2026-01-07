@@ -11,6 +11,22 @@ on:
 jobs:
   integration:
     runs-on: [ubuntu-latest]
+    strategy:
+      matrix:
+        include:
+          - test_type: unix
+            unbound_config: /etc/unbound/unbound-example.conf
+            exporter_command: "-unbound.host=unix:///var/run/socket/unbound.ctl"
+          - test_type: tcp
+            unbound_config: /etc/unbound/unbound-tcp.conf
+            exporter_command: "-unbound.host=tcp://unbound:8953 -unbound.ca= -unbound.cert= -unbound.key="
+          - test_type: tls
+            unbound_config: /etc/unbound/unbound-tls.conf
+            exporter_command: "-unbound.host=tcp://unbound:8954 -unbound.ca=/certs/unbound_ca_ec.pem -unbound.cert=/certs/unbound_control_ec.pem -unbound.key=/certs/unbound_control_ec.key"
+    env:
+      TEST_TYPE: ${{ matrix.test_type }}
+      UNBOUND_CONFIG: ${{ matrix.unbound_config }}
+      EXPORTER_COMMAND: ${{ matrix.exporter_command }}
     steps:
       - name: Install Go
         uses: actions/setup-go@v6

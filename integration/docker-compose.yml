@@ -1,71 +1,134 @@
 services:
+  # Setup container that generates certificates and configs
+  setup:
+    image: debian:forky
+    volumes:
+      - certs:/certs
+      - configs:/configs
+    command: >
+      bash -c "
+      apt-get update && apt-get install -y openssl &&
+      mkdir -p /certs /configs &&
+      if [ ! -f /certs/unbound_ca_ec.pem ]; then
+        cd /certs &&
+        # Generate CA
+        openssl ecparam -genkey -name secp384r1 > unbound_ca_ec.key &&
+        cat > ca_request.cfg <<EOF
+      [req]
+      prompt = no
+      distinguished_name = req_distinguished_name
+      x509_extensions = req_v3_extensions
+      [req_distinguished_name]
+      commonName = unbound-ca
+      [req_v3_extensions]
+      subjectKeyIdentifier = hash
+      authorityKeyIdentifier = keyid:always,issuer:always
+      basicConstraints = CA:true
+      EOF
+        openssl req -key unbound_ca_ec.key -config ca_request.cfg -new -x509 -days 397 -out unbound_ca_ec.pem &&
+        # Generate server cert
+        openssl ecparam -genkey -name secp384r1 > unbound_server_ec.key &&
+        cat > server_request.cfg <<EOF
+      [req]
+      prompt = no
+      distinguished_name = req_distinguished_name
+      [req_distinguished_name]
+      commonName = unbound
+      EOF
+        cat > server_exts.cfg <<EOF
+      subjectAltName = @alt_names
+      subjectKeyIdentifier = hash
+      authorityKeyIdentifier = keyid:always,issuer:always
+      extendedKeyUsage = serverAuth
+      [alt_names]
+      DNS.1 = unbound
+      DNS.2 = localhost
+      EOF
+        openssl req -key unbound_server_ec.key -config server_request.cfg -new | openssl x509 -req -days 397 -CA unbound_ca_ec.pem -CAkey unbound_ca_ec.key -CAcreateserial -sha256 -extfile server_exts.cfg -out unbound_server_ec.pem &&
+        cat unbound_ca_ec.pem >> unbound_server_ec.pem &&
+        # Generate client cert
+        openssl ecparam -genkey -name secp384r1 > unbound_control_ec.key &&
+        cat > client_request.cfg <<EOF
+      [req]
+      prompt = no
+      distinguished_name = req_distinguished_name
+      [req_distinguished_name]
+      commonName = unbound-control
+      EOF
+        cat > client_exts.cfg <<EOF
+      extendedKeyUsage = clientAuth
+      EOF
+        openssl req -key unbound_control_ec.key -config client_request.cfg -new | openssl x509 -req -days 397 -CA unbound_ca_ec.pem -CAkey unbound_ca_ec.key -CAcreateserial -sha256 -extfile client_exts.cfg -out unbound_control_ec.pem &&
+        chmod 0640 *.key &&
+        chmod 0644 *.pem &&
+        rm -f *.cfg *.srl &&
+        echo 'Certificates generated successfully';
+      else
+        echo 'Certificates already exist';
+      fi
+      "
+
   unbound_exporter:
     build:
       context: ..
-    command: [ "-unbound.host=unix:///var/run/socket/unbound.ctl" ]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        if [ -n "$EXPORTER_COMMAND" ]; then
+          exec /unbound_exporter $EXPORTER_COMMAND
+        else
+          exec /unbound_exporter -unbound.host=unix:///var/run/socket/unbound.ctl
+        fi
+    environment:
+      - EXPORTER_COMMAND=${EXPORTER_COMMAND:-}
     volumes:
       - socket:/var/run/socket:ro
+      - certs:/certs:ro
     ports:
       - "9167:9167"
     depends_on:
+      setup:
+        condition: service_completed_successfully
       unbound:
         condition: service_started
+
   unbound:
     build:
       context: .
       dockerfile: unbound.Containerfile
+    environment:
+      - UNBOUND_CONFIG=${UNBOUND_CONFIG:-/etc/unbound/unbound-example.conf}
+    command: >
+      bash -c "
+      # Generate config based on environment variable
+      if [ \"$$UNBOUND_CONFIG\" = \"/etc/unbound/unbound-tcp.conf\" ]; then
+        cp /etc/unbound/unbound-example.conf /tmp/unbound.conf &&
+        sed -i 's|control-interface: /var/run/socket/unbound.ctl|control-interface: 0.0.0.0\\n    control-port: 8953\\n    control-use-cert: no|' /tmp/unbound.conf &&
+        exec /usr/local/sbin/unbound -v -d -c /tmp/unbound.conf;
+      elif [ \"$$UNBOUND_CONFIG\" = \"/etc/unbound/unbound-tls.conf\" ]; then
+        cp /etc/unbound/unbound-example.conf /tmp/unbound.conf &&
+        sed -i 's|control-interface: /var/run/socket/unbound.ctl|control-interface: 0.0.0.0\\n    control-port: 8954\\n    control-use-cert: yes\\n    server-key-file: \"/certs/unbound_server_ec.key\"\\n    server-cert-file: \"/certs/unbound_server_ec.pem\"\\n    control-key-file: \"/certs/unbound_control_ec.key\"\\n    control-cert-file: \"/certs/unbound_control_ec.pem\"|' /tmp/unbound.conf &&
+        exec /usr/local/sbin/unbound -v -d -c /tmp/unbound.conf;
+      else
+        exec /usr/local/sbin/unbound -v -d -c /etc/unbound/unbound-example.conf;
+      fi
+      "
     volumes:
       - socket:/var/run/socket:rw
+      - certs:/certs:ro
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"
       - "2853:2853/tcp" # DoQ
-
-  # TCP exporter instance (without TLS)
-  unbound_exporter_tcp:
-    build:
-      context: ..
-    command: [ "-unbound.host=tcp://unbound_tcp:8953", "-unbound.ca=", "-unbound.cert=", "-unbound.key=" ]
-    ports:
-      - "9168:9167"
-    depends_on:
-      unbound_tcp:
-        condition: service_started
-  unbound_tcp:
-    build:
-      context: .
-      dockerfile: unbound.Containerfile
-    command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/unbound-tcp.conf"]
-    ports:
       - "8953:8953"
-
-  # TLS exporter instance
-  unbound_exporter_tls:
-    build:
-      context: ..
-    command: [ 
-      "-unbound.host=tcp://unbound_tls:8954",
-      "-unbound.ca=/certs/unbound_ca_ec.pem",
-      "-unbound.cert=/certs/unbound_control_ec.pem",
-      "-unbound.key=/certs/unbound_control_ec.key"
-    ]
-    volumes:
-      - certs:/certs:ro
-    ports:
-      - "9169:9167"
-    depends_on:
-      unbound_tls:
-        condition: service_started
-  unbound_tls:
-    build:
-      context: .
-      dockerfile: unbound.Containerfile
-    command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/unbound-tls.conf"]
-    volumes:
-      - certs:/etc/unbound/certs:rw
-    ports:
       - "8954:8954"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
 
 volumes:
   socket:
   certs:
+  configs:
+

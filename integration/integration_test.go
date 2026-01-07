@@ -4,6 +4,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/prometheus/common/expfmt"
@@ -11,10 +12,13 @@ import (
 )
 
 // TestIntegration checks that unbound_exporter is running, successfully
-// scraping and exporting metrics using Unix socket.
+// scraping and exporting metrics.
 //
 // It assumes unbound_exporter is available on localhost:9167, and Unbound on
 // localhost:1053, as is set up in the docker-compose.yml file.
+//
+// The TEST_TYPE environment variable can be set to "unix", "tcp", or "tls"
+// to test different connection modes. If not set, defaults to "unix".
 //
 // A typical invocation of this test would look like
 //
@@ -22,32 +26,24 @@ import (
 //	go test --tags=integration
 //	docker compose down
 func TestIntegration(t *testing.T) {
-	testExporter(t, "http://localhost:9167", "Unix socket")
-}
+	testType := os.Getenv("TEST_TYPE")
+	if testType == "" {
+		testType = "unix"
+	}
 
-// TestIntegrationTCP checks that unbound_exporter is running, successfully
-// scraping and exporting metrics using TCP (without TLS).
-//
-// It assumes unbound_exporter is available on localhost:9168, and Unbound TCP
-// control interface on localhost:8953, as is set up in the docker-compose.yml file.
-func TestIntegrationTCP(t *testing.T) {
-	testExporter(t, "http://localhost:9168", "TCP")
-}
+	var connectionType string
+	switch testType {
+	case "tcp":
+		connectionType = "TCP"
+	case "tls":
+		connectionType = "TLS"
+	default:
+		connectionType = "Unix socket"
+	}
 
-// TestIntegrationTLS checks that unbound_exporter is running, successfully
-// scraping and exporting metrics using TLS.
-//
-// It assumes unbound_exporter is available on localhost:9169, and Unbound TLS
-// control interface on localhost:8954, as is set up in the docker-compose.yml file.
-func TestIntegrationTLS(t *testing.T) {
-	testExporter(t, "http://localhost:9169", "TLS")
-}
+	t.Logf("Testing %s connection to unbound_exporter", connectionType)
 
-// testExporter is a helper function that tests an unbound_exporter instance.
-func testExporter(t *testing.T, exporterURL string, connectionType string) {
-	t.Logf("Testing %s connection to unbound_exporter at %s", connectionType, exporterURL)
-
-	resp, err := http.Get(exporterURL + "/metrics")
+	resp, err := http.Get("http://localhost:9167/metrics")
 	if err != nil {
 		t.Fatalf("Failed to fetch metrics from unbound_exporter (%s): %v", connectionType, err)
 	}
@@ -86,7 +82,7 @@ func testExporter(t *testing.T, exporterURL string, connectionType string) {
 		}
 	}
 
-	resp, err = http.Get(exporterURL + "/_healthz")
+	resp, err = http.Get("http://localhost:9167/_healthz")
 	if err != nil {
 		t.Fatalf("Failed to fetch healthz from unbound_exporter (%s): %v", connectionType, err)
 	}
