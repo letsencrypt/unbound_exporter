@@ -34,7 +34,6 @@ services:
       - UNBOUND_CONFIG
     volumes:
       - certs:/certs:ro
-      - ./setup-unbound-config.sh:/setup-unbound-config.sh:ro
     command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-tls.conf"]
     ports:
       - "1053:1053/udp"
