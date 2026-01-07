@@ -11,7 +11,7 @@ import (
 )
 
 // TestIntegration checks that unbound_exporter is running, successfully
-// scraping and exporting metrics.
+// scraping and exporting metrics using Unix socket.
 //
 // It assumes unbound_exporter is available on localhost:9167, and Unbound on
 // localhost:1053, as is set up in the docker-compose.yml file.
@@ -22,26 +22,51 @@ import (
 //	go test --tags=integration
 //	docker compose down
 func TestIntegration(t *testing.T) {
-	resp, err := http.Get("http://localhost:9167/metrics")
+	testExporter(t, "http://localhost:9167", "Unix socket")
+}
+
+// TestIntegrationTCP checks that unbound_exporter is running, successfully
+// scraping and exporting metrics using TCP (without TLS).
+//
+// It assumes unbound_exporter is available on localhost:9168, and Unbound TCP
+// control interface on localhost:8953, as is set up in the docker-compose.yml file.
+func TestIntegrationTCP(t *testing.T) {
+	testExporter(t, "http://localhost:9168", "TCP")
+}
+
+// TestIntegrationTLS checks that unbound_exporter is running, successfully
+// scraping and exporting metrics using TLS.
+//
+// It assumes unbound_exporter is available on localhost:9169, and Unbound TLS
+// control interface on localhost:8954, as is set up in the docker-compose.yml file.
+func TestIntegrationTLS(t *testing.T) {
+	testExporter(t, "http://localhost:9169", "TLS")
+}
+
+// testExporter is a helper function that tests an unbound_exporter instance.
+func testExporter(t *testing.T, exporterURL string, connectionType string) {
+	t.Logf("Testing %s connection to unbound_exporter at %s", connectionType, exporterURL)
+
+	resp, err := http.Get(exporterURL + "/metrics")
 	if err != nil {
-		t.Fatalf("Failed to fetch metrics from unbound_exporter: %v", err)
+		t.Fatalf("Failed to fetch metrics from unbound_exporter (%s): %v", connectionType, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Expected a 200 OK from unbound_exporter, got: %v", resp.StatusCode)
+		t.Fatalf("Expected a 200 OK from unbound_exporter (%s), got: %v", connectionType, resp.StatusCode)
 	}
 
 	parser := expfmt.NewTextParser(model.UTF8Validation)
 	metrics, err := parser.TextToMetricFamilies(resp.Body)
 	if err != nil {
-		t.Fatalf("Failed to parse metrics from unbound_exporter: %v", err)
+		t.Fatalf("Failed to parse metrics from unbound_exporter (%s): %v", connectionType, err)
 	}
 
 	// unbound_up is 1 if we've successfully scraped metrics from it
 	unbound_up := metrics["unbound_up"].Metric[0].Gauge.GetValue()
 	if unbound_up != 1 {
-		t.Errorf("Expected unbound_up to be 1, not: %v", unbound_up)
+		t.Errorf("Expected unbound_up to be 1 for %s connection, not: %v", connectionType, unbound_up)
 	}
 
 	// Check some expected metrics are present
@@ -57,17 +82,19 @@ func TestIntegration(t *testing.T) {
 		"unbound_query_subnet_cache_total",
 	} {
 		if _, ok := metrics[metric]; !ok {
-			t.Errorf("Expected metric is missing: %s", metric)
+			t.Errorf("Expected metric is missing for %s connection: %s", connectionType, metric)
 		}
 	}
 
-	resp, err = http.Get("http://localhost:9167/_healthz")
+	resp, err = http.Get(exporterURL + "/_healthz")
 	if err != nil {
-		t.Fatalf("Failed to fetch healthz from unbound_exporter: %v", err)
+		t.Fatalf("Failed to fetch healthz from unbound_exporter (%s): %v", connectionType, err)
 	}
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("unbound_exporter reported unhealthy, status code: %d", resp.StatusCode)
+		t.Fatalf("unbound_exporter reported unhealthy for %s connection, status code: %d", connectionType, resp.StatusCode)
 	}
 
+	t.Logf("Successfully validated %s connection", connectionType)
 }
+

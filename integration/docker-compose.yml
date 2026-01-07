@@ -20,5 +20,52 @@ services:
       - "1053:1053/udp"
       - "1053:1053/tcp"
       - "2853:2853/tcp" # DoQ
+
+  # TCP exporter instance (without TLS)
+  unbound_exporter_tcp:
+    build:
+      context: ..
+    command: [ "-unbound.host=tcp://unbound_tcp:8953", "-unbound.ca=", "-unbound.cert=", "-unbound.key=" ]
+    ports:
+      - "9168:9167"
+    depends_on:
+      unbound_tcp:
+        condition: service_started
+  unbound_tcp:
+    build:
+      context: .
+      dockerfile: unbound.Containerfile
+    command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/unbound-tcp.conf"]
+    ports:
+      - "8953:8953"
+
+  # TLS exporter instance
+  unbound_exporter_tls:
+    build:
+      context: ..
+    command: [ 
+      "-unbound.host=tcp://unbound_tls:8954",
+      "-unbound.ca=/certs/unbound_server_ec.pem",
+      "-unbound.cert=/certs/unbound_control_ec.pem",
+      "-unbound.key=/certs/unbound_control_ec.key"
+    ]
+    volumes:
+      - certs:/certs:ro
+    ports:
+      - "9169:9167"
+    depends_on:
+      unbound_tls:
+        condition: service_started
+  unbound_tls:
+    build:
+      context: .
+      dockerfile: unbound.Containerfile
+    command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/unbound-tls.conf"]
+    volumes:
+      - certs:/etc/unbound/certs:rw
+    ports:
+      - "8954:8954"
+
 volumes:
   socket:
+  certs:
