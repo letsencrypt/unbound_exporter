@@ -132,7 +132,7 @@ test -f "${CTL_BASE}.pem" || error "could not create ${CTL_BASE}.pem"
 # --------------
 
 # set desired permissions
-chmod 0644 "${CA_BASE}.key" "${SVR_BASE}.key" "${CTL_BASE}.key"
+chmod 0640 "${CA_BASE}.key" "${SVR_BASE}.key" "${CTL_BASE}.key"
 chmod 0644 "${CA_BASE}.pem" "${SVR_BASE}.pem" "${CTL_BASE}.pem"
 
 # cleanup
