@@ -4,7 +4,6 @@ package main
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/prometheus/common/expfmt"
@@ -17,52 +16,32 @@ import (
 // It assumes unbound_exporter is available on localhost:9167, and Unbound on
 // localhost:1053, as is set up in the docker-compose.yml file.
 //
-// The TEST_TYPE environment variable can be set to "unix", "tcp", or "tls"
-// to test different connection modes. If not set, defaults to "unix".
-//
 // A typical invocation of this test would look like
 //
 //	docker compose up --build -d
 //	go test --tags=integration
 //	docker compose down
 func TestIntegration(t *testing.T) {
-	testType := os.Getenv("TEST_TYPE")
-	if testType == "" {
-		testType = "unix"
-	}
-
-	var connectionType string
-	switch testType {
-	case "tcp":
-		connectionType = "TCP"
-	case "tls":
-		connectionType = "TLS"
-	default:
-		connectionType = "Unix socket"
-	}
-
-	t.Logf("Testing %s connection to unbound_exporter", connectionType)
-
 	resp, err := http.Get("http://localhost:9167/metrics")
 	if err != nil {
-		t.Fatalf("Failed to fetch metrics from unbound_exporter (%s): %v", connectionType, err)
+		t.Fatalf("Failed to fetch metrics from unbound_exporter: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Expected a 200 OK from unbound_exporter (%s), got: %v", connectionType, resp.StatusCode)
+		t.Fatalf("Expected a 200 OK from unbound_exporter, got: %v", resp.StatusCode)
 	}
 
 	parser := expfmt.NewTextParser(model.UTF8Validation)
 	metrics, err := parser.TextToMetricFamilies(resp.Body)
 	if err != nil {
-		t.Fatalf("Failed to parse metrics from unbound_exporter (%s): %v", connectionType, err)
+		t.Fatalf("Failed to parse metrics from unbound_exporter: %v", err)
 	}
 
 	// unbound_up is 1 if we've successfully scraped metrics from it
 	unbound_up := metrics["unbound_up"].Metric[0].Gauge.GetValue()
 	if unbound_up != 1 {
-		t.Errorf("Expected unbound_up to be 1 for %s connection, not: %v", connectionType, unbound_up)
+		t.Errorf("Expected unbound_up to be 1, not: %v", unbound_up)
 	}
 
 	// Check some expected metrics are present
@@ -78,19 +57,17 @@ func TestIntegration(t *testing.T) {
 		"unbound_query_subnet_cache_total",
 	} {
 		if _, ok := metrics[metric]; !ok {
-			t.Errorf("Expected metric is missing for %s connection: %s", connectionType, metric)
+			t.Errorf("Expected metric is missing: %s", metric)
 		}
 	}
 
 	resp, err = http.Get("http://localhost:9167/_healthz")
 	if err != nil {
-		t.Fatalf("Failed to fetch healthz from unbound_exporter (%s): %v", connectionType, err)
+		t.Fatalf("Failed to fetch healthz from unbound_exporter: %v", err)
 	}
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("unbound_exporter reported unhealthy for %s connection, status code: %d", connectionType, resp.StatusCode)
+		t.Fatalf("unbound_exporter reported unhealthy, status code: %d", resp.StatusCode)
 	}
 
-	t.Logf("Successfully validated %s connection", connectionType)
 }
-
