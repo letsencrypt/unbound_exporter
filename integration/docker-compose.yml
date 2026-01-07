@@ -45,7 +45,7 @@ services:
       context: ..
     command: [ 
       "-unbound.host=tcp://unbound_tls:8954",
-      "-unbound.ca=/certs/unbound_server_ec.pem",
+      "-unbound.ca=/certs/unbound_ca_ec.pem",
       "-unbound.cert=/certs/unbound_control_ec.pem",
       "-unbound.key=/certs/unbound_control_ec.key"
     ]
