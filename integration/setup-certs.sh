@@ -21,7 +21,10 @@ openssl ecparam -genkey -name secp384r1 -out unbound_server_ec.key
 openssl req -new -key unbound_server_ec.key -out server.csr -subj "/CN=unbound"
 openssl x509 -req -in server.csr -CA unbound_ca_ec.pem -CAkey unbound_ca_ec.key \
   -CAcreateserial -out unbound_server_ec.pem -days 397 -sha256 \
-  -extfile <(printf "subjectAltName=DNS:unbound,DNS:localhost\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always,issuer:always\nextendedKeyUsage=serverAuth")
+  -addext "subjectAltName=DNS:unbound,DNS:localhost" \
+  -addext "subjectKeyIdentifier=hash" \
+  -addext "authorityKeyIdentifier=keyid:always,issuer:always" \
+  -addext "extendedKeyUsage=serverAuth"
 
 # Append CA cert to server cert for chain
 cat unbound_ca_ec.pem >> unbound_server_ec.pem
@@ -31,13 +34,14 @@ openssl ecparam -genkey -name secp384r1 -out unbound_control_ec.key
 openssl req -new -key unbound_control_ec.key -out client.csr -subj "/CN=unbound-control"
 openssl x509 -req -in client.csr -CA unbound_ca_ec.pem -CAkey unbound_ca_ec.key \
   -CAcreateserial -out unbound_control_ec.pem -days 397 -sha256 \
-  -extfile <(printf "extendedKeyUsage=clientAuth")
+  -addext "extendedKeyUsage=clientAuth"
 
 # Set permissions
 chmod 0640 *.key
 chmod 0644 *.pem
 
 # Cleanup
-rm -f *.csr *.srl
+rm -f *.csr
 
 echo 'Certificates generated successfully'
+

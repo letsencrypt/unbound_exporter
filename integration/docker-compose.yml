@@ -1,11 +1,11 @@
 services:
   # Setup container that generates certificates
   setup:
-    image: debian:forky
+    build:
+      context: .
+      dockerfile: setup.Containerfile
     volumes:
       - certs:/certs
-      - ./setup-certs.sh:/setup-certs.sh:ro
-    command: ["sh", "-c", "apt-get update && apt-get install -y openssl && bash /setup-certs.sh"]
 
   unbound_exporter:
     build:
