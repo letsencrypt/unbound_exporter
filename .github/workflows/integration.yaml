@@ -35,4 +35,4 @@ jobs:
       - name: Stop containers
         if: always()
         working-directory: integration
-        run: docker compose -f docker-compose-$TEST_TYPE.conf down
+        run: docker compose -f docker-compose-$TEST_TYPE.yml down
