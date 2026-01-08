@@ -1,0 +1,41 @@
+services:
+  setup:
+    build:
+      context: .
+      dockerfile: unbound.Containerfile
+    command: [ "/usr/local/sbin/unbound-control-setup" ]
+    volumes:
+      - certs:/usr/local/etc/unbound
+
+  unbound_exporter:
+    build:
+      context: ..
+    command: [ "-unbound.host=tcp://unbound:8954", "-unbound.ca=/certs/unbound_server.pem", "-unbound.cert=/certs/unbound_control.pem", "-unbound.key=/certs/unbound_control.key" ]
+    volumes:
+      - certs:/certs:ro
+    ports:
+      - "9167:9167"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      unbound:
+        condition: service_started
+
+  unbound:
+    build:
+      context: .
+      dockerfile: unbound.Containerfile
+    command: [ "/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-tls.conf" ]
+    volumes:
+      - certs:/certs:ro
+    ports:
+      - "1053:1053/udp"
+      - "1053:1053/tcp"
+      - "2853:2853/tcp" # DoQ
+      - "8954:8954"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+volumes:
+  certs:
