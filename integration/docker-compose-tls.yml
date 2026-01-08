@@ -1,5 +1,4 @@
 services:
-  # Setup container that generates certificates
   setup:
     build:
       context: .
@@ -7,7 +6,6 @@ services:
     command: [ "/usr/local/sbin/unbound-control-setup" ]
     volumes:
       - certs:/usr/local/etc/unbound
-    working_dir: /certs
 
   unbound_exporter:
     build:
