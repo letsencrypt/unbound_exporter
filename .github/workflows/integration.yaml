@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Start containers
         working-directory: integration
-        run: docker compose -f docker-compose-$TEST_TYPE.conf up --build --detach
+        run: docker compose -f docker-compose-$TEST_TYPE.yml up --build --detach
       - name: run integration test
         working-directory: integration
         run: go test -v --tags=integration

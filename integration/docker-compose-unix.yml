@@ -2,9 +2,9 @@ services:
   unbound_exporter:
     build:
       context: ..
+    command: [ "-unbound.host=unix:///var/run/socket/unbound.ctl" ]
     volumes:
       - socket:/var/run/socket:ro
-    command: ["-unbound.host=unix:///var/run/socket/unbound.ctl"]
     ports:
       - "9167:9167"
     depends_on:
@@ -17,7 +17,7 @@ services:
       dockerfile: unbound.Containerfile
     volumes:
       - socket:/var/run/socket:rw
-    command: ["/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-unix.conf"]
+    command: [ "/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-unix.conf" ]
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"
@@ -27,5 +27,3 @@ services:
 
 volumes:
   socket:
-
-
