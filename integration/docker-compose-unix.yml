@@ -10,15 +10,18 @@ services:
     depends_on:
       unbound:
         condition: service_started
+
   unbound:
     build:
       context: .
       dockerfile: unbound.Containerfile
     volumes:
       - socket:/var/run/socket:rw
+    command: [ "/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-unix.conf" ]
     ports:
       - "1053:1053/udp"
       - "1053:1053/tcp"
       - "2853:2853/tcp" # DoQ
+
 volumes:
   socket:
