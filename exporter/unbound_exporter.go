@@ -369,7 +369,7 @@ var (
 		},
 		{
 			"msg_cache_count",
-			"The Number of Messages cached",
+			"The number of Messages cached",
 			prometheus.GaugeValue,
 			nil,
 			"^msg\\.cache\\.count$",
@@ -383,7 +383,7 @@ var (
 		},
 		{
 			"rrset_cache_count",
-			"The Number of rrset cached",
+			"The number of rrset cached",
 			prometheus.GaugeValue,
 			nil,
 			"^rrset\\.cache\\.count$",
@@ -454,7 +454,7 @@ var (
 		},
 		{
 			"signature_validations",
-			"Total umber of signature validation operations performed by the validator module",
+			"Total number of signature validation operations performed by the validator module",
 			prometheus.CounterValue,
 			nil,
 			"^num\\.valops$",
@@ -808,11 +808,16 @@ func NewUnboundExporter(host string, ca string, cert string, key string, log *sl
 	newExporter := UnboundExporter{
 		log:          log,
 		socketFamily: u.Scheme,
-		host:         u.Path,
 		metrics:      compileMetrics(),
 	}
 
-	if u.Scheme == "unix" || (ca == "" && cert == "" && key == "") {
+	if u.Scheme == "unix" {
+		newExporter.host = u.Path
+		return &newExporter, nil
+	}
+	newExporter.host = u.Host
+
+	if ca == "" && cert == "" && key == "" {
 		return &newExporter, nil
 	}
 

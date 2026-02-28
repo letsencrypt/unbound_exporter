@@ -1,0 +1,21 @@
+services:
+  unbound_exporter:
+    build:
+      context: ..
+    command: [ "-unbound.host=tcp://unbound:8953", "-unbound.ca=", "-unbound.cert=", "-unbound.key=" ]
+    ports:
+      - "9167:9167"
+    depends_on:
+      unbound:
+        condition: service_started
+
+  unbound:
+    build:
+      context: .
+      dockerfile: unbound.Containerfile
+    command: [ "/usr/local/sbin/unbound", "-v", "-d", "-c", "/etc/unbound/remote-control-tcp.conf" ]
+    ports:
+      - "1053:1053/udp"
+      - "1053:1053/tcp"
+      - "2853:2853/tcp" # DoQ
+      - "8953:8953"
