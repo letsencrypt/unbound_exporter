@@ -628,6 +628,7 @@ func tlsConfig(ca string, cert string, key string) (*tls.Config, error) {
 		Certificates: []tls.Certificate{keyPair},
 		RootCAs:      roots,
 		ServerName:   "unbound",
+		MinVersion:   tls.VersionTLS12,
 	}, nil
 }
 
