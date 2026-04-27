@@ -41,19 +41,19 @@ if test -f "${CA_BASE}.key"; then
         echo "${CA_BASE}.key exists"
 else
         echo "generating ${CA_BASE}.key"
-        openssl ecparam -genkey -name secp384r1 > ${CA_BASE}.key || error "could not gen ecdsa"
+        openssl ecparam -genkey -name secp384r1 > "${CA_BASE}.key" || error "could not gen ecdsa"
 fi
 if test -f "${SVR_BASE}.key"; then
         echo "${SVR_BASE}.key exists"
 else
         echo "generating ${SVR_BASE}.key"
-        openssl ecparam -genkey -name secp384r1 > ${SVR_BASE}.key || error "could not gen ecdsa"
+        openssl ecparam -genkey -name secp384r1 > "${SVR_BASE}.key" || error "could not gen ecdsa"
 fi
 if test -f "${CTL_BASE}.key"; then
         echo "${CTL_BASE}.key exists"
 else
         echo "generating ${CTL_BASE}.key"
-        openssl ecparam -genkey -name secp384r1 > ${CTL_BASE}.key || error "could not gen ecdsa"
+        openssl ecparam -genkey -name secp384r1 > "${CTL_BASE}.key" || error "could not gen ecdsa"
 fi
 
 # create self-signed cert CSR for server
@@ -104,7 +104,7 @@ test -f server_exts.cfg || error "could not create server_exts.cfg"
 
 echo "create ${SVR_BASE}.pem (signed server certificate)"
 openssl req -key "${SVR_BASE}.key" -config server_request.cfg -new | openssl x509 -req -days "${DAYS}" -CA "${CA_BASE}.pem" -CAkey "${CA_BASE}.key" -CAcreateserial -"${HASH}" -extfile server_exts.cfg -out "${SVR_BASE}.pem"
-test -f ${SVR_BASE}.pem || error "could not create ${SVR_BASE}.pem"
+test -f "${SVR_BASE}.pem" || error "could not create ${SVR_BASE}.pem"
 
 # --------------
 
