@@ -28,13 +28,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
       - name: go coverage
         run: |
           go test -mod=readonly -v -race -covermode=atomic -coverprofile=coverage.out ./...
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v6
         if: success()
         with:
           file: ./coverage.out
