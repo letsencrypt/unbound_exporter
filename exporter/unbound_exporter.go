@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -549,21 +550,32 @@ func collectFromReader(metrics []unboundMetric, file io.Reader, ch chan<- promet
 	return scanner.Err()
 }
 
-func (e *UnboundExporter) collectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) error {
-	var (
-		conn net.Conn
-		err  error
-	)
+const (
+	dialTimeout   = 5 * time.Second
+	scrapeTimeout = 10 * time.Second
+)
 
+func (e *UnboundExporter) collectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) (err error) {
+	var conn net.Conn
+
+	dialer := net.Dialer{Timeout: dialTimeout}
 	if socketFamily == "unix" || tlsConfig == nil {
-		conn, err = net.Dial(socketFamily, host)
+		conn, err = dialer.Dial(socketFamily, host)
 	} else {
-		conn, err = tls.Dial(socketFamily, host, tlsConfig)
+		conn, err = tls.DialWithDialer(&dialer, socketFamily, host, tlsConfig)
 	}
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+
+	defer func() {
+		err = errors.Join(err, conn.Close())
+	}()
+
+	if err = conn.SetDeadline(time.Now().Add(scrapeTimeout)); err != nil {
+		return err
+	}
+
 	_, err = conn.Write([]byte("UBCT1 stats_noreset\n"))
 	if err != nil {
 		return err
