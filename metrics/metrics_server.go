@@ -47,9 +47,11 @@ func NewMetricServer(listenAddress, metricsPath, healthPath string, exp *exporte
 	prometheus.MustRegister(exp)
 	prometheus.MustRegister(version.NewCollector("unbound_exporter"))
 
-	http.Handle(metricsPath, promhttp.Handler())
-
-	http.HandleFunc(healthPath, func(w http.ResponseWriter, req *http.Request) {
+	// Deliberately use our own mux to add routes rather than relying on the
+	// global variable created by http.DefaultServeMux
+	mux := http.NewServeMux()
+	mux.Handle(metricsPath, promhttp.Handler())
+	mux.HandleFunc(healthPath, func(w http.ResponseWriter, req *http.Request) {
 		if exp.UnboundUp() {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("ok"))
@@ -60,9 +62,9 @@ func NewMetricServer(listenAddress, metricsPath, healthPath string, exp *exporte
 	})
 
 	renderedHomePage := homePageText(metricsPath, healthPath)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(renderedHomePage)
 	})
 
-	return http.ListenAndServe(listenAddress, nil)
+	return http.ListenAndServe(listenAddress, mux)
 }
