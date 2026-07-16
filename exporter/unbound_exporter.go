@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -39,6 +40,11 @@ var (
 		prometheus.BuildFQName("unbound", "", "response_time_seconds"),
 		"Query response time in seconds.",
 		nil, nil)
+
+	unboundInfoDesc = prometheus.NewDesc(
+		prometheus.BuildFQName("unbound", "", "info"),
+		"Metadata about the running Unbound server.",
+		[]string{"version", "threads", "modules"}, nil)
 
 	unboundMetrics = []metricDescription{
 		{
@@ -550,20 +556,79 @@ func collectFromReader(metrics []unboundMetric, file io.Reader, ch chan<- promet
 	return scanner.Err()
 }
 
+// collectInfoFromReader parses "status" command output, which uses
+// "key: value" lines unlike the "key=value" stats format.
+func collectInfoFromReader(file io.Reader, ch chan<- prometheus.Metric) error {
+	// module names sit inside brackets: "2 [ validator iterator ]"
+	modulesPattern := regexp.MustCompile(`\[\s*(.*?)\s*\]`)
+
+	var version, threads, modules string
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		key, value, found := strings.Cut(scanner.Text(), ":")
+		if !found {
+			continue
+		}
+		value = strings.TrimSpace(value)
+
+		switch key {
+		case "version":
+			version = value
+		case "threads":
+			threads = value
+		case "modules":
+			if matches := modulesPattern.FindStringSubmatch(value); matches != nil {
+				modules = matches[1]
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if version == "" {
+		return errors.New("no version found in status output")
+	}
+
+	ch <- prometheus.MustNewConstMetric(
+		unboundInfoDesc,
+		prometheus.GaugeValue,
+		1.0,
+		version, threads, modules)
+
+	return nil
+}
+
 const (
 	dialTimeout   = 5 * time.Second
 	scrapeTimeout = 10 * time.Second
 )
 
-func (e *UnboundExporter) collectFromSocket(socketFamily string, host string, tlsConfig *tls.Config, ch chan<- prometheus.Metric) (err error) {
+// The control protocol serves one command per connection, so every
+// command needs its own dial.
+func (e *UnboundExporter) dial() (net.Conn, error) {
 	var conn net.Conn
+	var err error
 
 	dialer := net.Dialer{Timeout: dialTimeout}
-	if socketFamily == "unix" || tlsConfig == nil {
-		conn, err = dialer.Dial(socketFamily, host)
+	if e.socketFamily == "unix" || e.tlsConfig == nil {
+		conn, err = dialer.Dial(e.socketFamily, e.host)
 	} else {
-		conn, err = tls.DialWithDialer(&dialer, socketFamily, host, tlsConfig)
+		conn, err = tls.DialWithDialer(&dialer, e.socketFamily, e.host, e.tlsConfig)
 	}
+	if err != nil {
+		return nil, err
+	}
+
+	if err = conn.SetDeadline(time.Now().Add(scrapeTimeout)); err != nil {
+		return nil, errors.Join(err, conn.Close())
+	}
+	return conn, nil
+}
+
+func (e *UnboundExporter) collectFromSocket(ch chan<- prometheus.Metric) (err error) {
+	conn, err := e.dial()
 	if err != nil {
 		return err
 	}
@@ -572,15 +637,28 @@ func (e *UnboundExporter) collectFromSocket(socketFamily string, host string, tl
 		err = errors.Join(err, conn.Close())
 	}()
 
-	if err = conn.SetDeadline(time.Now().Add(scrapeTimeout)); err != nil {
-		return err
-	}
-
 	_, err = conn.Write([]byte("UBCT1 stats_noreset\n"))
 	if err != nil {
 		return err
 	}
 	return collectFromReader(e.metrics, conn, ch)
+}
+
+func (e *UnboundExporter) collectStatus(ch chan<- prometheus.Metric) (err error) {
+	conn, err := e.dial()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = errors.Join(err, conn.Close())
+	}()
+
+	_, err = conn.Write([]byte("UBCT1 status\n"))
+	if err != nil {
+		return err
+	}
+	return collectInfoFromReader(conn, ch)
 }
 
 type UnboundExporter struct {
@@ -665,13 +743,27 @@ func NewUnboundExporter(host string, ca string, cert string, key string, log *sl
 
 func (e *UnboundExporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- unboundUpDesc
+	ch <- unboundInfoDesc
 	for _, metric := range e.metrics {
 		ch <- metric.desc
 	}
 }
 
 func (e *UnboundExporter) Collect(ch chan<- prometheus.Metric) {
-	err := e.collectFromSocket(e.socketFamily, e.host, e.tlsConfig, ch)
+	// Runs concurrently with the stats scrape so a slow status exchange
+	// cannot stretch the scrape beyond its original worst case. A failure
+	// only drops unbound_info; the stats scrape remains the health signal.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := e.collectStatus(ch); err != nil {
+			e.log.Error("Failed to scrape status", "err", err.Error())
+		}
+	}()
+	defer wg.Wait()
+
+	err := e.collectFromSocket(ch)
 	if err == nil {
 		e.unboundUp.Store(true)
 		ch <- prometheus.MustNewConstMetric(
