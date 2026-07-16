@@ -48,6 +48,7 @@ func TestIntegration(t *testing.T) {
 	for _, metric := range []string{
 		"go_info",
 		"unbound_exporter_build_info",
+		"unbound_info",
 		"unbound_queries_total",
 		"unbound_response_time_seconds",
 		"unbound_cache_hits_total",
