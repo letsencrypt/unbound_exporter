@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+    strategy:
+      matrix:
+        include:
+          - { arch: x86_64,  goarch: amd64,   goarm: '',  target_arch: amd64 }
+          - { arch: armhf,   goarch: arm,     goarm: '7', target_arch: arm7 }
+          - { arch: armel,   goarch: arm,     goarm: '5', target_arch: arm5 }
+          - { arch: arm64,   goarch: arm64,   goarm: '',  target_arch: arm64 }
+          - { arch: riscv64, goarch: riscv64, goarm: '',  target_arch: riscv64 }
     steps:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
@@ -24,19 +32,31 @@ jobs:
           persist-credentials: false
 
       - name: build binary
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
         run: go build
 
       - name: install nfpm
         run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.15.1
 
       - name: build deb
-        run: nfpm package -p deb -t unbound_exporter.deb
+        env:
+          TARGET_ARCH: ${{ matrix.target_arch }}
+        run: nfpm package -p deb -t unbound_exporter-${{ matrix.arch }}.deb
 
-      - name: upload deb
+      - name: rename binary
+        run: mv unbound_exporter unbound_exporter-${{ matrix.arch }}
+
+      - name: upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: unbound_exporter deb artifact
-          path: unbound_exporter.deb
+          name: unbound_exporter-${{ matrix.arch }}
+          path: |
+            unbound_exporter-${{ matrix.arch }}
+            unbound_exporter-${{ matrix.arch }}.deb
 
   push-release:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
@@ -51,16 +71,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download release artifact
+      - name: Download release artifacts
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          name: unbound_exporter deb artifact
+          path: dist
+          merge-multiple: true
 
       - name: rename
-        run: mv unbound_exporter.deb unbound_exporter-${GITHUB_REF_NAME}.x86_64.deb
+        run: |
+          cd dist
+          for f in unbound_exporter-*; do
+            mv "$f" "unbound_exporter-${GITHUB_REF_NAME}-${f#unbound_exporter-}"
+          done
 
       - name: push release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # https://cli.github.com/manual/gh_release_create
-        run: gh release create "${GITHUB_REF_NAME}" unbound_exporter-${GITHUB_REF_NAME}.x86_64.deb
+        run: gh release create "${GITHUB_REF_NAME}" dist/*

@@ -1,5 +1,5 @@
 name: "unbound_exporter"
-arch: "amd64"
+arch: "${TARGET_ARCH}"
 platform: "linux"
 version: "${GITHUB_REF_NAME}"
 description: "Prometheus exporter for Unbound recursive DNS resolver"
